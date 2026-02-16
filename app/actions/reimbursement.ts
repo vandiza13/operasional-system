@@ -14,43 +14,60 @@ async function uploadFile(file: File | null, folderName: string): Promise<string
   }
 
   const fileName = `${Date.now()}-${file.name}`;
-  
-  // Coba upload ke Vercel Blob terlebih dahulu
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  const isVercelEnvironment = process.env.VERCEL === '1' || process.cwd().includes('/var/task');
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+  // 1. Prioritas: Gunakan Vercel Blob jika token tersedia
+  if (blobToken) {
     try {
-      console.log(`📤 Attempting Vercel Blob upload for ${folderName}...`);
+      console.log(`📤 Uploading to Vercel Blob: ${folderName}/${fileName}`);
       const blob = await put(`${folderName}/${fileName}`, file, {
         access: 'public',
       });
-      console.log(`✅ Vercel Blob upload successful: ${blob.url}`);
+      console.log(`✅ Vercel Blob success: ${blob.url}`);
       return blob.url;
     } catch (error) {
-      console.warn(`⚠️ Vercel Blob upload failed for ${folderName}:`, error);
-      console.log('📁 Falling back to local storage...');
+      console.warn(`⚠️ Vercel Blob failed:`, error);
+      // Jika Blob gagal tapi token ada, jangan fallback - return error
+      throw new Error(`Vercel Blob upload failed: ${String(error)}`);
     }
-  } else {
-    console.log(`⚠️ BLOB_READ_WRITE_TOKEN not set, using local storage for ${folderName}`);
   }
 
-  // Fallback: Simpan ke local storage
+  // 2. Jika di Vercel tapi tidak ada token, return error message
+  if (isVercelEnvironment) {
+    const errorMsg = 
+      `⚠️ File upload requires BLOB_READ_WRITE_TOKEN in Vercel environment.\n` +
+      `Please set BLOB_READ_WRITE_TOKEN in Vercel Project Settings → Environment Variables.\n` +
+      `Without it, file uploads are disabled in production.`;
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // 3. Local development: Fallback ke local storage
+  console.log(`📁 BLOB token not set, using local storage for ${folderName}`);
   const buffer = Buffer.from(await file.arrayBuffer());
   const filePath = join(process.cwd(), 'public', folderName, fileName);
   
   try {
     await writeFile(filePath, buffer);
-    console.log(`✅ Local storage upload successful: /${folderName}/${fileName}`);
+    console.log(`✅ Local storage: /${folderName}/${fileName}`);
     return `/${folderName}/${fileName}`;
-  } catch (err) {
-    // Buat folder jika belum ada
+  } catch (err: any) {
+    // Coba buat folder dan simpan lagi
     const fs = await import('fs');
     const folderPath = join(process.cwd(), 'public', folderName);
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true });
+    
+    try {
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath, { recursive: true });
+      }
       await writeFile(filePath, buffer);
-      console.log(`✅ Local storage upload successful (folder created): /${folderName}/${fileName}`);
+      console.log(`✅ Local storage (created folder): /${folderName}/${fileName}`);
       return `/${folderName}/${fileName}`;
+    } catch (error) {
+      console.error(`❌ Local storage failed:`, error);
+      throw new Error(`Failed to save file locally: ${String(error)}`);
     }
-    throw err;
   }
 }
 
@@ -71,12 +88,32 @@ export async function submitReimbursement(formData: FormData) {
     }
 
     // 2. Upload foto secara paralel (bersamaan) agar cepat
-    const [receiptUrl, evidence1Url, evidence2Url, evidence3Url] = await Promise.all([
-      uploadFile(receiptFile, 'receipts'),
-      uploadFile(ev1File, 'evidences'),
-      uploadFile(ev2File, 'evidences'),
-      uploadFile(ev3File, 'evidences')
-    ]);
+    let receiptUrl: string | null = null;
+    let evidence1Url: string | null = null;
+    let evidence2Url: string | null = null;
+    let evidence3Url: string | null = null;
+
+    try {
+      [receiptUrl, evidence1Url, evidence2Url, evidence3Url] = await Promise.all([
+        uploadFile(receiptFile, 'receipts'),
+        uploadFile(ev1File, 'evidences'),
+        uploadFile(ev2File, 'evidences'),
+        uploadFile(ev3File, 'evidences')
+      ]);
+    } catch (uploadError: any) {
+      const errorMessage = String(uploadError?.message || uploadError);
+      console.error('Upload error:', errorMessage);
+      
+      // Jika BLOB token tidak set di Vercel
+      if (errorMessage.includes('BLOB_READ_WRITE_TOKEN')) {
+        return { 
+          success: false, 
+          message: '⚠️ Sistem penyimpanan file belum dikonfigurasi.\n\nHubungi admin untuk set BLOB_READ_WRITE_TOKEN di Vercel Project Settings.' 
+        };
+      }
+      
+      return { success: false, message: `Gagal upload file: ${errorMessage}` };
+    }
 
     // 3. AMBIL DATA USER DARI COOKIE LOGIN
     const cookieStore = await cookies();
