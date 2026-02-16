@@ -2,12 +2,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  engineType = "wasm"
-}
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  }
 
 datasource db {
-  provider = "mysql" 
-  url      = env("DATABASE_URL")
+  provider = "mysql"
 }
 
 // Hak Akses Sistem
