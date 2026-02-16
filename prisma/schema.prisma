@@ -5,7 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql" // Ubah dari postgresql ke mysql untuk TiDB
+  provider = "mysql" 
+  url      = env("DATABASE_URL")
 }
 
 // Hak Akses Sistem
