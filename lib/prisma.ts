@@ -3,29 +3,51 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaTiDBCloud } from '@tidbcloud/prisma-adapter';
 
 const prismaClientSingleton = () => {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL belum di-set di file .env");
+  let databaseUrl = process.env.DATABASE_URL;
+  
+  // Validasi DATABASE_URL ada
+  if (!databaseUrl) {
+    throw new Error(
+      '❌ DATABASE_URL tidak ditemukan!\n' +
+      'Pastikan sudah di-set di file .env.local\n' +
+      'Lihat FIX_DATABASE_URL.md untuk panduan lengkap.\n' +
+      'Format: mysql://username:password@host:port/database'
+    );
   }
 
-  // 1. Bersihkan URL untuk jalur Serverless HTTP (HTTPS / Port 443)
-  const serverlessUrl = process.env.DATABASE_URL
-    .replace(':4000', '')
-    .replace('?sslaccept=strict', '')
-    .replace('?tls=true', '');
+  // Validasi DATABASE_URL lengkap (harus ada database name)
+  if (!databaseUrl.includes('?') && databaseUrl.split('/').length < 4) {
+    throw new Error(
+      '❌ DATABASE_URL tidak lengkap atau salah format!\n' +
+      `Current: ${databaseUrl.substring(0, 50)}...\n` +
+      'Format yang benar: mysql://username:password@host:port/database_name\n' +
+      'Lihat FIX_DATABASE_URL.md untuk panduan mendapatkan URL yang benar dari TiDB Cloud.'
+    );
+  }
 
-  // 2. Buat adapter dengan TiDB Serverless
+  // TiDB Adapter expects HTTP URL, not MySQL URL
+  // Convert mysql:// to http:// dan remove SSL parameters yang tidak perlu
+  let httpUrl = databaseUrl
+    .replace(/^mysql:\/\//, 'http://')
+    .replace(/\?sslaccept=strict/, '')
+    .replace(/\?tls=true/, '');
+  
+  console.log('✅ DATABASE_URL valid, converting to HTTP format...');
+  console.log(`   Using: ${httpUrl.substring(0, 60)}...`);
+
+  // 1. Buat adapter dengan HTTP URL untuk TiDB Serverless
   const adapter = new PrismaTiDBCloud({
-    url: serverlessUrl,
-    // INI KUNCI PENYELESAIANNYA: Bypass cache agresif Next.js
+    url: httpUrl,
+    // KUNCI PENYELESAIANNYA: Bypass cache agresif Next.js
     fetch: (req, init) => {
       return fetch(req, {
         ...init,
-        cache: 'no-store', // Memaksa Next.js membiarkan fetch ini lewat ke database
+        cache: 'no-store', 
       });
     }
   });
 
-  // 4. Masukkan adapter ke constructor PrismaClient
+  // 2. Masukkan adapter ke constructor PrismaClient
   return new PrismaClient({ adapter });
 };
 

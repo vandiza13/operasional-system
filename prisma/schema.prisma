@@ -38,8 +38,14 @@ model User {
 model Reimbursement {
   id             String              @id @default(cuid())
   amount         Decimal             @db.Decimal(10, 2) 
-  description    String              @db.Text // Pakai Text agar deskripsi bisa lebih panjang jika teknisi butuh curhat detail
-  evidenceUrl    String              @db.Text // URL Vercel Blob kadang panjang, Text lebih aman di MySQL
+  description    String              @db.Text 
+  
+  // 4 SLOT FOTO SPESIFIK:
+  receiptUrl     String              @db.Text // WAJIB: Foto Bon/Struk
+  evidence1Url   String?             @db.Text // OPSIONAL: Tanda tanya (?) berarti boleh kosong
+  evidence2Url   String?             @db.Text // OPSIONAL
+  evidence3Url   String?             @db.Text // OPSIONAL
+
   status         ReimbursementStatus @default(PENDING)
   rejectionNote  String?             @db.Text
 
