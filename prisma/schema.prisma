@@ -1,0 +1,53 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql" // Ubah dari postgresql ke mysql untuk TiDB
+}
+
+// Hak Akses Sistem
+enum Role {
+  ADMIN
+  TECHNICIAN
+}
+
+// Status Alur Uang Operasional
+enum ReimbursementStatus {
+  PENDING    
+  APPROVED   
+  REJECTED   
+  PAID       
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  email          String          @unique
+  password       String          
+  role           Role            @default(TECHNICIAN)
+  
+  reimbursements Reimbursement[] 
+  
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Reimbursement {
+  id             String              @id @default(cuid())
+  amount         Decimal             @db.Decimal(10, 2) 
+  description    String              @db.Text // Pakai Text agar deskripsi bisa lebih panjang jika teknisi butuh curhat detail
+  evidenceUrl    String              @db.Text // URL Vercel Blob kadang panjang, Text lebih aman di MySQL
+  status         ReimbursementStatus @default(PENDING)
+  rejectionNote  String?             @db.Text
+
+  userId         String
+  user           User                @relation(fields: [userId], references: [id])
+
+  createdAt      DateTime            @default(now()) 
+  updatedAt      DateTime            @updatedAt
+  approvedAt     DateTime?           
+  paidAt         DateTime?           
+}
