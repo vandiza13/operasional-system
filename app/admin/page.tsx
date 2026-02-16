@@ -61,7 +61,7 @@ export default async function AdminDashboard() {
                 {pendingList.length === 0 ? (
                   <tr><td colSpan={4} className="p-4 text-center text-gray-500">Tidak ada laporan baru.</td></tr>
                 ) : (
-                  pendingList.map((item) => (
+                  pendingList.map((item: any) => (
                     <tr key={item.id} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-medium text-gray-800">{item.user?.name || 'User Tidak Diketahui'}</td>
                       <td className="p-3 text-sm text-gray-600">{item.description}</td>
@@ -103,7 +103,7 @@ export default async function AdminDashboard() {
                 {approvedQueue.length === 0 ? (
                   <tr><td colSpan={4} className="p-4 text-center text-gray-500">Antrean kosong.</td></tr>
                 ) : (
-                  approvedQueue.map((item, index) => (
+                  approvedQueue.map((item: any, index: number) => (
                     <tr key={item.id} className="border-b hover:bg-gray-50">
                       <td className="p-3 font-bold text-xl text-blue-600">#{index + 1}</td>
                       <td className="p-3 font-medium text-gray-800">{item.user?.name || 'User Tidak Diketahui'}</td>
