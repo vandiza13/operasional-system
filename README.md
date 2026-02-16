@@ -1,126 +1,256 @@
-# Operational System - Sistem Manajemen Pengguna dan Reimbursement
+# 📋 Operational System - Complete Setup & Usage Guide
 
-Aplikasi Next.js untuk mengelola pengguna dan proses reimbursement dengan upload bukti struk.
+**Updated: February 16, 2026** | v1.0.0 - Production Ready
+
+Aplikasi Next.js untuk manajemen pengguna dan proses reimbursement dengan fitur autentikasi, upload file, dan dashboard approval.
 
 ## 🎯 Fitur Utama
 
-- ✅ Sistem autentikasi user (Admin & Technician)
-- ✅ Form pengajuan reimbursement dengan upload bukti
-- ✅ Upload file ke Vercel Blob (dengan fallback local storage)
-- ✅ Dashboard admin untuk melihat reimbursement
-- ✅ Database TiDB Cloud MySQL
-- ✅ Tailwind CSS untuk styling
+- ✅ Sistem autentikasi user (Admin & Technician) dengan bcrypt
+- ✅ Form pengajuan reimbursement dengan upload multiple files
+- ✅ Upload file ke Vercel Blob (fallback local storage)
+- ✅ Dashboard admin untuk approval & payment tracking
+- ✅ Database TiDB Cloud MySQL dengan Prisma ORM
+- ✅ Route protection dengan middleware
+- ✅ Tailwind CSS styling
 
-## 🚀 Setup & Running
+## 🚀 Quick Start (3 Steps)
 
-### 1. Install Dependencies
+### 1. Install & Setup
 ```bash
 npm install
-```
-
-### 2. Setup Environment Variables
-Copy dan isi file `.env.local`:
-```bash
-cp .env.example .env.local
-```
-
-**Required Variables:**
-```env
-# Database TiDB Cloud
-DATABASE_URL="mysql://..."
-
-# Vercel Blob (optional, fallback ke local storage jika tidak ada)
-BLOB_READ_WRITE_TOKEN="vercel_blob_rw_..."
-```
-
-**Lihat:** [VERCEL_BLOB_SETUP.md](./VERCEL_BLOB_SETUP.md) untuk petunjuk lengkap.
-
-### 3. Setup Database
-```bash
-npx prisma migrate dev
-# atau
+cp .env.example .env.local  # Edit dengan credentials Anda
+npx prisma generate
 npx prisma db push
-```
-
-### 4. Run Development Server
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000)
+### 2. Create Test Users
+Visit: `http://localhost:3000/api/seed`
 
-## 📋 Struktur Project
+### 3. Login & Test
+- Admin: `admin@operational.com` / `admin123`
+- Tech: `budi@teknisi.com` / `pass123`
+
+---
+
+## 📚 Detailed Setup
+
+### Environment Variables
+Edit `.env.local`:
+```env
+# TiDB Cloud - Format: http://user:pass@host:4000/database
+DATABASE_URL="http://username:password@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test"
+
+# Vercel Blob (Optional - fallback to local storage)
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxx_token_xxxxx"
+```
+
+**Getting DATABASE_URL:**
+1. [TiDB Cloud Dashboard](https://tidbcloud.com) → Select Cluster
+2. Click "Connect" → Copy MySQL URL
+3. Convert: `mysql://` → `http://`, remove `?sslaccept=strict`
+
+### Prisma Sync
+```bash
+# If database schema doesn't match client:
+npx prisma generate
+npx prisma db push
+```
+
+---
+
+## 🔐 Authentication
+
+### Test Accounts (Default)
+
+| Role | Email | Password |
+|------|-------|----------|
+| ADMIN | admin@operational.com | admin123 |
+| TECH | budi@teknisi.com | pass123 |
+| TECH | rina@teknisi.com | pass123 |
+
+**Password Hashing:** bcrypt (10 salt rounds)
+
+### Create Test Users
+```bash
+# API endpoint
+GET http://localhost:3000/api/seed
+
+# Browser Console
+fetch('/api/users', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ action: 'reset' })
+}).then(r => r.json()).then(console.log)
+```
+
+---
+
+## 📝 Usage
+
+### Technician Flow
+1. **Login** → `/submit` route
+2. **Fill Form:**
+   - Jumlah (Rp)
+   - Deskripsi
+   - Foto Bon (required)
+   - Foto Evidence 1-3 (optional)
+3. **Submit** → Saves to database + Vercel Blob
+4. **Status:** PENDING (tunggu admin approval)
+
+### Admin Flow
+1. **Login** → `/admin` route
+2. **View** Submissions list
+3. **Approve/Reject** Each item
+4. **Mark Paid** When transferred
+5. **Track** Status: PENDING → APPROVED → PAID
+
+---
+
+## 🗑️ Database Management
+
+### Check Status
+```
+GET http://localhost:3000/api/reset
+```
+
+### Wipe All Data (DESTRUCTIVE)
+```javascript
+// Browser Console
+fetch('/api/reset', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ confirm: 'WIPE_ALL_DATA' })
+}).then(r => r.json()).then(console.log)
+```
+
+Or visit UI: `http://localhost:3000/admin/reset`
+
+---
+
+## 🆘 Troubleshooting
+
+| Problem | Cause | Solution |
+|---------|-------|----------|
+| "Email/password salah" | No users in DB | Visit `/api/seed` |
+| Vercel Blob error | Token invalid/missing | Check `.env.local` BLOB token |
+| Database connection failed | Invalid URL format | Convert `mysql://` → `http://`, remove SSL params |
+| Upload not working | Both methods failed | Check `/public/receipts` folder created |
+| Type errors after schema change | Prisma client out of sync | Run `npx prisma generate` |
+
+---
+
+## 📁 Project Structure
 
 ```
 app/
-├── actions/           # Server actions
-│   ├── reimbursement.ts   # Upload & save reimbursement
-│   ├── admin.ts           # Admin actions
-│   └── vercel-blob-test.ts # Testing tool
-├── admin/            # Admin pages
-├── submit/           # Submit reimbursement form
-└── page.tsx          # Home page
+├── actions/               # Server Actions (business logic)
+│   ├── auth.ts           # Login/Logout with bcrypt
+│   ├── reimbursement.ts  # Submit form, file upload
+│   ├── admin.ts          # Approve/Reject/Pay
+│   └── seed.ts           # Create test users
+├── api/                  # API Routes
+│   ├── reset/route.ts    # Wipe database
+│   ├── seed/route.ts     # Seed users
+│   └── users/route.ts    # List/reset users
+├── admin/                # Admin pages
+│   ├── page.tsx          # Dashboard
+│   └── reset/page.tsx    # DB reset UI
+├── login/page.tsx        # Login form
+├── submit/page.tsx       # Reimbursement form
+└── page.tsx              # Home
 
-lib/
-└── prisma.ts         # Prisma client setup (TiDB)
-
-prisma/
-└── schema.prisma     # Database schema
+lib/prisma.ts            # Prisma client + TiDB config
+middleware.ts            # Auth & route protection
 ```
 
-## 🛠 Troubleshooting
+---
 
-### Upload File Error
+## 🔌 API Endpoints
 
-**Error: "Vercel Blob: This store does not exist"**
+| Route | Method | Body | Purpose |
+|-------|--------|------|---------|
+| `/api/seed` | GET | - | Create default test users |
+| `/api/reset` | GET | - | Check DB status |
+| `/api/reset` | POST | `{confirm:"WIPE_ALL_DATA"}` | Delete all data |
+| `/api/users` | GET | - | List users |
+| `/api/users` | POST | `{action:"reset"}` | Reset & reseed |
 
-Solusi:
-1. Pastikan `BLOB_READ_WRITE_TOKEN` di `.env.local`
-2. Verify token di Vercel Dashboard
-3. Check token format: `vercel_blob_rw_xxxxx_token_xxxxx`
-4. Jika fallback, file akan disimpan di `/public/receipts/`
+---
 
-Lihat [VERCEL_BLOB_SETUP.md](./VERCEL_BLOB_SETUP.md) untuk detail.
-
-### Database Connection Error
-
-**Error: "DATABASE_URL belum di-set"**
-
-Solusi:
-1. Pastikan `DATABASE_URL` di `.env.local`
-2. Check TiDB Cloud credentials
-3. Jalankan `npx prisma db push` untuk setup schema
-
-## 📚 Dokumentasi
-
-- [Vercel Blob Setup Guide](./VERCEL_BLOB_SETUP.md) - Panduan lengkap setup file storage
-- [Next.js Docs](https://nextjs.org/docs)
-- [Prisma Docs](https://www.prisma.io/docs)
-- [TiDB Cloud Docs](https://docs.pingcap.com/tidbcloud)
-
-## 🚢 Deployment
-
-### Deploy ke Vercel
-
-1. Push code ke GitHub
-2. Import di Vercel Dashboard
-3. Set environment variables di `Settings > Environment Variables`
-4. Deploy!
-
-**Note:** Vercel Blob otomatis tersedia di production.
-
-## 📝 Scripts
+## 🛠️ Scripts
 
 ```bash
 npm run dev      # Development server
 npm run build    # Build for production
-npm start        # Start production server
-npm run lint     # Jalankan ESLint
+npm start        # Production server
+npm run lint     # ESLint check
 ```
 
-## 📄 License
+---
 
-MIT
+## ⚙️ Tech Stack
+
+- **Framework:** Next.js 16
+- **Runtime:** Node.js
+- **Database:** TiDB Cloud (MySQL)
+- **ORM:** Prisma
+- **Auth:** Cookies + bcrypt
+- **Upload:** Vercel Blob + Local FS
+- **UI:** Tailwind CSS
+- **Language:** TypeScript
+- **Type Safety:** TypeScript strict mode
+
+---
+
+## 📌 Important Notes
+
+### Security
+- ✅ Passwords hashed with bcrypt (10 rounds)
+- ✅ Session cookies httpOnly
+- ✅ Route protection middleware
+- ✅ Never commit `.env.local`
+
+### Database
+- No automatic backups
+- Reset = permanent data loss
+- TiDB managed by cloud provider
+
+### File Storage
+- Production: Vercel Blob (recommended)
+- Development: Local `/public` folder
+- Files auto-organized: `receipts/`, `evidences/`
+
+### Deployment
+- Deploy to Vercel (+ enable Blob storage)
+- Set env vars in Vercel Dashboard
+- Prisma migrations: `npx prisma db push`
+
+---
+
+## 📖 Documentation Links
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Prisma ORM](https://www.prisma.io/docs)
+- [TiDB Cloud](https://docs.pingcap.com/tidbcloud)
+- [Vercel Blob](https://vercel.com/docs/storage/vercel-blob)
+- [bcrypt.js](https://github.com/dcodeIO/bcrypt.js)
+
+---
+
+## 🔄 Recent Updates (v1.0.0)
+
+- ✅ Removed duplicate routes
+- ✅ Standardized bcrypt password hashing  
+- ✅ Fixed async/await issues
+- ✅ Consolidated documentation
+- ✅ Enhanced error handling
+- ✅ Improved code organization
+
+---
+
+**Ready for production! 🚀**
 
 
 ## Deploy on Vercel

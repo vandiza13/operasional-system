@@ -1,10 +1,11 @@
 'use server'
 
 import prisma from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
 
 /**
  * 🌱 Seed Function - Create test users for development
- * Run this ONCE to populate the database with test accounts
+ * Uses bcrypt for password hashing (same as auth.ts)
  */
 export async function seedTestUsers() {
   try {
@@ -18,12 +19,16 @@ export async function seedTestUsers() {
       };
     }
 
+    // Hash passwords with bcrypt (10 salt rounds = standard secure & fast)
+    const adminPassword = await bcrypt.hash('admin123', 10);
+    const techPassword = await bcrypt.hash('pass123', 10);
+
     // 2. Create ADMIN user
     const admin = await prisma.user.create({
       data: {
         name: 'Admin Operasional',
         email: 'admin@operational.com',
-        password: 'admin123', // ⚠️ Plain text untuk development
+        password: adminPassword,
         role: 'ADMIN'
       }
     });
@@ -33,7 +38,7 @@ export async function seedTestUsers() {
       data: {
         name: 'Teknisi Budi',
         email: 'budi@teknisi.com',
-        password: 'pass123', // ⚠️ Plain text untuk development
+        password: techPassword,
         role: 'TECHNICIAN'
       }
     });
@@ -42,7 +47,7 @@ export async function seedTestUsers() {
       data: {
         name: 'Teknisi Rina',
         email: 'rina@teknisi.com',
-        password: 'pass123', // ⚠️ Plain text untuk development
+        password: techPassword,
         role: 'TECHNICIAN'
       }
     });
@@ -51,7 +56,7 @@ export async function seedTestUsers() {
       data: {
         name: 'Teknisi Ahmad',
         email: 'ahmad@teknisi.com',
-        password: 'pass123', // ⚠️ Plain text untuk development
+        password: techPassword,
         role: 'TECHNICIAN'
       }
     });
