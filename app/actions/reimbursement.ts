@@ -2,7 +2,50 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { put } from '@vercel/blob'; // Import fungsi upload dari Vercel
+import { put } from '@vercel/blob';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
+
+async function uploadFile(file: File): Promise<string> {
+  const fileName = `${Date.now()}-${file.name}`;
+  
+  // Coba upload ke Vercel Blob terlebih dahulu
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      console.log('📤 Attempting Vercel Blob upload...');
+      const blob = await put(`receipts/${fileName}`, file, {
+        access: 'public',
+      });
+      console.log('✅ Vercel Blob upload successful:', blob.url);
+      return blob.url;
+    } catch (error) {
+      console.warn('⚠️ Vercel Blob upload failed:', error);
+      console.log('📁 Falling back to local storage...');
+    }
+  } else {
+    console.log('⚠️ BLOB_READ_WRITE_TOKEN not set, using local storage');
+  }
+
+  // Fallback: Simpan ke local storage
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const filePath = join(process.cwd(), 'public', 'receipts', fileName);
+  
+  try {
+    await writeFile(filePath, buffer);
+    console.log('✅ Local storage upload successful:', `/receipts/${fileName}`);
+    return `/receipts/${fileName}`;
+  } catch (err) {
+    // Buat folder jika belum ada
+    const fs = await import('fs');
+    if (!fs.existsSync(join(process.cwd(), 'public', 'receipts'))) {
+      fs.mkdirSync(join(process.cwd(), 'public', 'receipts'), { recursive: true });
+      await writeFile(filePath, buffer);
+      console.log('✅ Local storage upload successful (folder created):', `/receipts/${fileName}`);
+      return `/receipts/${fileName}`;
+    }
+    throw err;
+  }
+}
 
 export async function submitReimbursement(formData: FormData) {
   try {
@@ -17,13 +60,8 @@ export async function submitReimbursement(formData: FormData) {
       return { success: false, message: 'Foto bukti struk wajib diunggah!' };
     }
 
-    // 2. Upload file ke Vercel Blob
-    // Kita tambahkan Date.now() agar nama file tidak bentrok jika ada yang sama
-    const blob = await put(`receipts/${Date.now()}-${file.name}`, file, {
-      access: 'public',
-    });
-
-    const realEvidenceUrl = blob.url; // Ini URL asli dari Vercel Blob!
+    // 2. Upload file (Vercel Blob atau Local fallback)
+    const realEvidenceUrl = await uploadFile(file);
 
     // 3. TRIK SEMENTARA: Cari atau buat "Teknisi Budi"
     let user = await prisma.user.findFirst();
