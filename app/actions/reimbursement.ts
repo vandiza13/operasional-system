@@ -6,66 +6,45 @@ import { put } from '@vercel/blob';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { cookies } from 'next/headers';
+import { AttachmentType } from '@prisma/client';
 
-// Fungsi bantuan untuk mengunggah file dengan fallback ke local storage
+// Fungsi bantuan untuk mengunggah file (TETAP SAMA SEPERTI MILIK ANDA)
 async function uploadFile(file: File | null, folderName: string): Promise<string | null> {
-  if (!file || file.size === 0) {
-    return null;
-  }
+  if (!file || file.size === 0) return null;
 
-  const fileName = `${Date.now()}-${file.name}`;
+  const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`; // Bersihkan nama file
   const isVercelEnvironment = process.env.VERCEL === '1' || process.cwd().includes('/var/task');
   const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
-  // 1. Prioritas: Gunakan Vercel Blob jika token tersedia
+  // 1. Prioritas: Gunakan Vercel Blob
   if (blobToken) {
     try {
-      console.log(`📤 Uploading to Vercel Blob: ${folderName}/${fileName}`);
-      const blob = await put(`${folderName}/${fileName}`, file, {
-        access: 'public',
-      });
-      console.log(`✅ Vercel Blob success: ${blob.url}`);
+      const blob = await put(`${folderName}/${fileName}`, file, { access: 'public' });
       return blob.url;
     } catch (error) {
-      console.warn(`⚠️ Vercel Blob failed:`, error);
-      // Jika Blob gagal tapi token ada, jangan fallback - return error
       throw new Error(`Vercel Blob upload failed: ${String(error)}`);
     }
   }
 
-  // 2. Jika di Vercel tapi tidak ada token, return error message
+  // 2. Jika di Vercel tapi tidak ada token
   if (isVercelEnvironment) {
-    const errorMsg = 
-      `⚠️ File upload requires BLOB_READ_WRITE_TOKEN in Vercel environment.\n` +
-      `Please set BLOB_READ_WRITE_TOKEN in Vercel Project Settings → Environment Variables.\n` +
-      `Without it, file uploads are disabled in production.`;
-    console.error(errorMsg);
-    throw new Error(errorMsg);
+    throw new Error(`⚠️ File upload requires BLOB_READ_WRITE_TOKEN in Vercel environment.`);
   }
 
-  // 3. Local development: Fallback ke local storage
-  console.log(`📁 BLOB token not set, using local storage for ${folderName}`);
+  // 3. Fallback: Local storage
   const buffer = Buffer.from(await file.arrayBuffer());
   const filePath = join(process.cwd(), 'public', folderName, fileName);
-  
   try {
     await writeFile(filePath, buffer);
-    console.log(`✅ Local storage: /${folderName}/${fileName}`);
     return `/${folderName}/${fileName}`;
   } catch (err: any) {
-    // Coba buat folder dan simpan lagi
     const fs = await import('fs');
     const folderPath = join(process.cwd(), 'public', folderName);
-    
     try {
-      if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath, { recursive: true });
-      }
+      if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
       await writeFile(filePath, buffer);
-      console.log(`✅ Local storage (created folder): /${folderName}/${fileName}`);
       return `/${folderName}/${fileName}`;
     } catch (error) {
-      console.error(`❌ Local storage failed:`, error);
       throw new Error(`Failed to save file locally: ${String(error)}`);
     }
   }
@@ -73,91 +52,86 @@ async function uploadFile(file: File | null, folderName: string): Promise<string
 
 export async function submitReimbursement(formData: FormData) {
   try {
+    // 1. AMBIL & VALIDASI DATA TEKS DULU (Cegah upload sia-sia jika data teks salah)
     const amount = formData.get('amount') as string;
     const description = formData.get('description') as string;
+    // Tambahan baru sesuai skema
+    const categoryId = formData.get('categoryId') as string;
+    const expenseDate = formData.get('expenseDate') as string;
     
-    // 1. Ambil 4 file dari form berdasarkan nama input-nya
-    const receiptFile = formData.get('receipt') as File;
-    const ev1File = formData.get('evidence1') as File | null;
-    const ev2File = formData.get('evidence2') as File | null;
-    const ev3File = formData.get('evidence3') as File | null;
-    
-    // Validasi Bon/Struk (Wajib ada)
-    if (!receiptFile || receiptFile.size === 0) {
-      return { success: false, message: 'Foto Bon/Struk WAJIB diunggah!' };
-    }
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return { success: false, message: 'Nominal tidak valid!' };
+    if (!expenseDate || isNaN(Date.parse(expenseDate))) return { success: false, message: 'Tanggal pengeluaran tidak valid!' };
+    if (!categoryId) return { success: false, message: 'Kategori wajib dipilih!' };
 
-    // 2. Upload foto secara paralel (bersamaan) agar cepat
-    let receiptUrl: string | null = null;
-    let evidence1Url: string | null = null;
-    let evidence2Url: string | null = null;
-    let evidence3Url: string | null = null;
-
-    try {
-      [receiptUrl, evidence1Url, evidence2Url, evidence3Url] = await Promise.all([
-        uploadFile(receiptFile, 'receipts'),
-        uploadFile(ev1File, 'evidences'),
-        uploadFile(ev2File, 'evidences'),
-        uploadFile(ev3File, 'evidences')
-      ]);
-    } catch (uploadError: any) {
-      const errorMessage = String(uploadError?.message || uploadError);
-      console.error('Upload error:', errorMessage);
-      
-      // Jika BLOB token tidak set di Vercel
-      if (errorMessage.includes('BLOB_READ_WRITE_TOKEN')) {
-        return { 
-          success: false, 
-          message: '⚠️ Sistem penyimpanan file belum dikonfigurasi.\n\nHubungi admin untuk set BLOB_READ_WRITE_TOKEN di Vercel Project Settings.' 
-        };
-      }
-      
-      return { success: false, message: `Gagal upload file: ${errorMessage}` };
-    }
-
-    // 3. AMBIL DATA USER DARI COOKIE LOGIN
+    // 2. CEK SESI USER
     const cookieStore = await cookies();
     const userId = cookieStore.get('userId')?.value;
-    
-    // Jika tidak ada cookie (belum login/dihapus), tolak laporannya
-    if (!userId) {
-      return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    if (!userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return { success: false, message: 'User tidak ditemukan.' };
+
+    // 3. AMBIL 4 FILE WAJIB
+    const files = {
+      RECEIPT: formData.get('receipt') as File,
+      EVIDENCE_1: formData.get('evidence1') as File,
+      EVIDENCE_2: formData.get('evidence2') as File,
+      EVIDENCE_3: formData.get('evidence3') as File,
+    };
+
+    // 4. VALIDASI 4 FILE WAJIB (Maks 5MB)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    for (const [key, file] of Object.entries(files)) {
+      if (!file || file.size === 0) return { success: false, message: `File ${key} wajib diunggah!` };
+      if (file.size > MAX_FILE_SIZE) return { success: false, message: `Ukuran file ${key} terlalu besar (Maks 5MB)!` };
+      if (!file.type.startsWith('image/')) return { success: false, message: `File ${key} harus berupa gambar!` };
     }
 
-    // Verifikasi user ada di database
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-    
-    if (!user) {
-      return { success: false, message: 'User tidak ditemukan. Silakan login kembali.' };
+    // 5. UPLOAD PARALEL (CEPAT & EFISIEN)
+    let urls: (string | null)[] = [];
+    try {
+      urls = await Promise.all([
+        uploadFile(files.RECEIPT, 'receipts'),
+        uploadFile(files.EVIDENCE_1, 'evidences'),
+        uploadFile(files.EVIDENCE_2, 'evidences'),
+        uploadFile(files.EVIDENCE_3, 'evidences')
+      ]);
+    } catch (uploadError: any) {
+      if (String(uploadError).includes('BLOB_READ_WRITE_TOKEN')) {
+        return { success: false, message: '⚠️ Sistem belum dikonfigurasi. Hubungi admin (BLOB Token).' };
+      }
+      return { success: false, message: `Gagal upload file: ${String(uploadError)}` };
     }
 
-    // 4. Simpan ke database dengan semua 4 foto URLs
-    if (!receiptUrl) {
-      return { success: false, message: 'Gagal upload foto bon/struk. Coba lagi.' };
-    }
+    if (urls.some(url => url === null)) return { success: false, message: 'Ada gambar yang gagal diunggah.' };
 
-    await prisma.reimbursement.create({
+    // 6. INSERT KE DATABASE (TiDB Safe - Nested Write)
+    // Sekarang menggunakan tabel Expense dan ExpenseAttachment
+    await prisma.expense.create({
       data: {
+        userId: userId,
+        categoryId: categoryId,
         amount: parseFloat(amount),
         description: description,
-        receiptUrl: receiptUrl,
-        evidence1Url: evidence1Url,
-        evidence2Url: evidence2Url,
-        evidence3Url: evidence3Url,
+        expenseDate: new Date(expenseDate),
         status: 'PENDING',
-        userId: userId
+        attachments: {
+          create: [
+            { type: 'RECEIPT', fileUrl: urls[0] as string },
+            { type: 'EVIDENCE_1', fileUrl: urls[1] as string },
+            { type: 'EVIDENCE_2', fileUrl: urls[2] as string },
+            { type: 'EVIDENCE_3', fileUrl: urls[3] as string },
+          ]
+        }
       }
     });
 
     revalidatePath('/submit');
     revalidatePath('/admin');
-    
-    return { success: true, message: 'Laporan dan semua foto berhasil dikirim!' };
+    return { success: true, message: 'Laporan dan 4 bukti berhasil masuk antrian!' };
 
   } catch (error) {
-    console.error('Error saving reimbursement:', error);
-    return { success: false, message: 'Gagal mengirim laporan. Coba lagi.' };
+    console.error('Submit Error:', error);
+    return { success: false, message: 'Terjadi kesalahan sistem internal.' };
   }
 }

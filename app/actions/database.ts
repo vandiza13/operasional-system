@@ -8,7 +8,7 @@ import prisma from '@/lib/prisma';
 export async function checkDatabaseStatus() {
   try {
     const totalUsers = await prisma.user.count();
-    const totalReimbursements = await prisma.reimbursement.count();
+    const totalExpenses = await prisma.expense.count();
 
     const users = await prisma.user.findMany({
       select: {
@@ -23,10 +23,10 @@ export async function checkDatabaseStatus() {
       success: true,
       statistics: {
         total_users: totalUsers,
-        total_reimbursements: totalReimbursements
+        total_expenses: totalExpenses
       },
       users: users,
-      message: `Database memiliki ${totalUsers} user dan ${totalReimbursements} reimbursement`
+      message: `Database memiliki ${totalUsers} user dan ${totalExpenses} expense`
     };
   } catch (error) {
     console.error('Database status error:', error);
@@ -38,23 +38,32 @@ export async function checkDatabaseStatus() {
   }
 }
 
+
 /**
  * POST /api/reset - Hapus SEMUA data di database (⚠️ DANGEROUS!)
  */
 export async function completeDeleteAllData() {
   try {
-    // Hapus reimbursements terlebih dahulu (foreign key constraint)
-    const reimbursementCount = await prisma.reimbursement.deleteMany({});
+    // Hapus expense attachments terlebih dahulu
+    const attachmentCount = await prisma.expenseAttachment.deleteMany({});
+    
+    // Hapus expenses
+    const expenseCount = await prisma.expense.deleteMany({});
+    
+    // Hapus expense categories
+    const categoryCount = await prisma.expenseCategory.deleteMany({});
     
     // Hapus semua users
     const userCount = await prisma.user.deleteMany({});
 
     return {
       success: true,
-      message: `✅ Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus reimbursement: ${reimbursementCount.count}`,
+      message: `✅ Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}`,
       deletedRecords: {
         users: userCount.count,
-        reimbursements: reimbursementCount.count
+        expenses: expenseCount.count,
+        attachments: attachmentCount.count,
+        categories: categoryCount.count
       }
     };
   } catch (error) {
