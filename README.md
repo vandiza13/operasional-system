@@ -37,10 +37,16 @@ Visit: `http://localhost:3000/api/seed`
 ## 📚 Detailed Setup
 
 ### Environment Variables
-Edit `.env.local`:
+
+1. Copy the example environment file:
+```bash
+cp .env.example .env.local
+```
+
+2. Edit `.env.local` with your actual credentials (never commit this file!):
 ```env
 # TiDB Cloud - Format: http://user:pass@host:4000/database
-DATABASE_URL="http://username:password@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test"
+DATABASE_URL="http://your_username:your_password@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/test"
 
 # Vercel Blob (Optional - fallback to local storage)
 BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxx_token_xxxxx"
@@ -50,6 +56,8 @@ BLOB_READ_WRITE_TOKEN="vercel_blob_rw_xxxxx_token_xxxxx"
 1. [TiDB Cloud Dashboard](https://tidbcloud.com) → Select Cluster
 2. Click "Connect" → Copy MySQL URL
 3. Convert: `mysql://` → `http://`, remove `?sslaccept=strict`
+
+**⚠️ SECURITY WARNING:** Never commit `.env.local` with real credentials to GitHub!
 
 ### Prisma Sync
 ```bash
@@ -62,28 +70,22 @@ npx prisma db push
 
 ## 🔐 Authentication
 
-### Test Accounts (Default)
+### Test Accounts (Development Only)
 
-| Role | Email | Password |
-|------|-------|----------|
-| ADMIN | admin@operational.com | admin123 |
-| TECH | budi@teknisi.com | pass123 |
-| TECH | rina@teknisi.com | pass123 |
+After running the seed command, default test accounts will be created based on your `.env.local` configuration.
 
 **Password Hashing:** bcrypt (10 salt rounds)
 
 ### Create Test Users
 ```bash
-# API endpoint
+# API endpoint - creates users based on SEED_* environment variables
 GET http://localhost:3000/api/seed
-
-# Browser Console
-fetch('/api/users', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ action: 'reset' })
-}).then(r => r.json()).then(console.log)
 ```
+
+**⚠️ SECURITY WARNING:** 
+- Change all default passwords in production!
+- Never expose real credentials in API responses.
+- The seed endpoint should be disabled or protected in production.
 
 ---
 

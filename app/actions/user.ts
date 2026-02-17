@@ -5,8 +5,9 @@ import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 
-// Protected accounts that cannot be deleted
-const PROTECTED_EMAILS = ['superadmin@vandiza.com', 'admin@vandiza.com'];
+// Protected accounts that cannot be deleted - loaded from environment variables
+const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
+
 
 /**
  * GET /api/users - Get all users from database
@@ -44,22 +45,43 @@ export async function getAllUsers() {
 
 /**
  * POST /api/users - Reset and reseed database with test users
+ * 
+ * SECURITY NOTE: This function should only be used in development.
+ * In production, users should be created through a secure admin interface.
  */
 export async function resetAndReseedUsers() {
   try {
+    // Get credentials from environment variables
+    const superAdminEmail = process.env.SEED_SUPER_ADMIN_EMAIL || 'superadmin@example.com';
+    const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD;
+    const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+    const techEmail = process.env.SEED_TECH_EMAIL || 'technician@example.com';
+    const techPassword = process.env.SEED_TECH_PASSWORD;
+
+    // Validate that passwords are set
+    if (!superAdminPassword || !adminPassword || !techPassword) {
+      return {
+        success: false,
+        message: 'Seed passwords not configured. Please set SEED_*_PASSWORD environment variables.',
+        error: 'Missing environment variables'
+      };
+    }
+
     // Delete all users
     await prisma.user.deleteMany({});
 
-    // Create test users with hashed passwords
-    const hashedAdminPassword = await bcrypt.hash('admin123', 10);
-    const hashedTechPassword = await bcrypt.hash('tech123', 10);
+    // Create test users with hashed passwords from environment variables
+    const hashedSuperAdminPassword = await bcrypt.hash(superAdminPassword, 10);
+    const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
+    const hashedTechPassword = await bcrypt.hash(techPassword, 10);
 
     // Create Super Admin
     await prisma.user.create({
       data: {
         name: 'Super Admin',
-        email: 'superadmin@vandiza.com',
-        password: await bcrypt.hash('superadmin123', 10),
+        email: superAdminEmail,
+        password: hashedSuperAdminPassword,
         role: 'SUPER_ADMIN' as any
       }
     });
@@ -68,7 +90,7 @@ export async function resetAndReseedUsers() {
     await prisma.user.create({
       data: {
         name: 'Admin User',
-        email: 'admin@vandiza.com',
+        email: adminEmail,
         password: hashedAdminPassword,
         role: 'ADMIN' as any
       }
@@ -78,7 +100,7 @@ export async function resetAndReseedUsers() {
     await prisma.user.create({
       data: {
         name: 'Teknisi Satu',
-        email: 'teknisi1@vandiza.com',
+        email: techEmail,
         password: hashedTechPassword,
         role: 'TECHNICIAN' as any,
         nik: '1234567890',
@@ -87,14 +109,15 @@ export async function resetAndReseedUsers() {
       }
     });
 
-
+    // SECURITY: Never return actual passwords in API responses
     return {
       success: true,
       message: 'Database successfully reset and seeded with test users!',
-      testCredentials: {
-        superadmin: { email: 'superadmin@vandiza.com', password: 'superadmin123' },
-        admin: { email: 'admin@vandiza.com', password: 'admin123' },
-        technician: { email: 'teknisi1@vandiza.com', password: 'tech123' }
+      // Only return email hints, never passwords
+      usersCreated: {
+        superadmin: { email: superAdminEmail, role: 'SUPER_ADMIN' },
+        admin: { email: adminEmail, role: 'ADMIN' },
+        technician: { email: techEmail, role: 'TECHNICIAN' }
       }
     };
   } catch (error) {
@@ -106,6 +129,7 @@ export async function resetAndReseedUsers() {
     };
   }
 }
+
 
 /**
  * Get current user profile from cookie

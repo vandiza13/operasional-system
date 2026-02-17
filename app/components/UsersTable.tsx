@@ -15,13 +15,16 @@ export default function UsersTable({
   users, 
   editUserAction, 
   resetPasswordAction, 
-  deleteUserAction 
+  deleteUserAction,
+  protectedEmails = []
 }: { 
   users: User[];
   editUserAction: (formData: FormData) => Promise<{success: boolean; message?: string}>;
   resetPasswordAction: (formData: FormData) => Promise<{success: boolean; message?: string}>;
   deleteUserAction: (formData: FormData) => Promise<{success: boolean; message?: string}>;
+  protectedEmails?: string[];
 }) {
+
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -42,16 +45,19 @@ export default function UsersTable({
   };
 
   const handleResetPassword = async (id: string) => {
-    if (!confirm('Reset password to "password123"?')) return;
+    // Generate a secure random password
+    const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase();
+    
+    if (!confirm(`Reset password to "${randomPassword}"?`)) return;
     
     setLoading(`reset-${id}`);
     try {
       const formData = new FormData();
       formData.append('id', id);
-      formData.append('newPassword', 'password123');
+      formData.append('newPassword', randomPassword);
       const result = await resetPasswordAction(formData);
       if (result.success) {
-        alert('Password reset successfully to: password123');
+        alert(`Password reset successfully to: ${randomPassword}\n\nPlease copy this password and share it securely with the user.`);
       } else {
         alert(result.message || 'Failed to reset password');
       }
@@ -61,6 +67,7 @@ export default function UsersTable({
       setLoading(null);
     }
   };
+
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete user "${name}"? This action cannot be undone.`)) return;
@@ -97,8 +104,9 @@ export default function UsersTable({
 
   // Check if user is protected
   const isProtectedUser = (email: string) => {
-    return ['superadmin@vandiza.com', 'admin@vandiza.com'].includes(email);
+    return protectedEmails.includes(email);
   };
+
 
   return (
     <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 overflow-hidden relative backdrop-blur-sm">

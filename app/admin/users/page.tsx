@@ -7,6 +7,9 @@ import UsersTable from '@/app/components/UsersTable';
 export const dynamic = 'force-dynamic';
 
 export default async function UsersManagementPage() {
+  // Protected accounts that cannot be deleted - loaded from environment variables
+  const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
+
   // Ambil semua user, urutkan berdasarkan Role (Super Admin paling atas)
   const users = await prisma.user.findMany({
     orderBy: [
@@ -14,6 +17,7 @@ export default async function UsersManagementPage() {
       { createdAt: 'desc' }
     ]
   });
+
 
   // Server Action untuk menambah Admin/Super Admin (Langsung di dalam komponen Server)
   async function addSystemUser(formData: FormData) {
@@ -115,10 +119,8 @@ export default async function UsersManagementPage() {
       return { success: false, message: 'User ID is required!' };
     }
 
-    // Protected accounts that cannot be deleted
-    const PROTECTED_EMAILS = ['superadmin@vandiza.com', 'admin@vandiza.com'];
-
     try {
+
       // Get user to check if it's a protected account
       const user = await prisma.user.findUnique({
         where: { id },
@@ -251,8 +253,10 @@ export default async function UsersManagementPage() {
             editUserAction={editUser}
             resetPasswordAction={resetUserPassword}
             deleteUserAction={deleteUser}
+            protectedEmails={PROTECTED_EMAILS}
           />
         </div>
+
 
       </div>
     </div>

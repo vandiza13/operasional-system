@@ -19,7 +19,8 @@ async function uploadFile(file: File | null, folderName: string): Promise<string
   // 1. Prioritas: Gunakan Vercel Blob
   if (blobToken) {
     try {
-      const blob = await put(`${folderName}/${fileName}`, file, { access: 'public' });
+      const blob = await put(`${folderName}/${fileName}`, file, { access: 'public', addRandomSuffix: true });
+
       return blob.url;
     } catch (error) {
       throw new Error(`Vercel Blob upload failed: ${String(error)}`);
