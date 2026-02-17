@@ -30,6 +30,11 @@ export default function SubmitPage() {
   // State untuk tracking file yang dipilih
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [evidenceFiles, setEvidenceFiles] = useState<(File | null)[]>([null, null, null]);
+  
+  // State untuk tracking file yang sudah dikompres
+  const [compressedReceipt, setCompressedReceipt] = useState<File | null>(null);
+  const [compressedEvidence, setCompressedEvidence] = useState<(File | null)[]>([null, null, null]);
+
 
 
   // Fetch Metrik, Profil & Kategori saat halaman dimuat
@@ -51,9 +56,34 @@ export default function SubmitPage() {
   }, []);
 
 
-  const handleSubmit = async (formData: FormData) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
     setMessage('');
+
+    // Buat FormData baru dengan file yang sudah dikompres
+    const formData = new FormData();
+    
+    // Ambil data teks dari form
+    const form = e.currentTarget;
+    formData.append('amount', (form.elements.namedItem('amount') as HTMLInputElement).value);
+    formData.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
+    formData.append('categoryId', (form.elements.namedItem('categoryId') as HTMLSelectElement).value);
+    formData.append('expenseDate', (form.elements.namedItem('expenseDate') as HTMLInputElement).value);
+    
+    // Gunakan file yang sudah dikompres
+    if (compressedReceipt) {
+      formData.append('receipt', compressedReceipt);
+    }
+    if (compressedEvidence[0]) {
+      formData.append('evidence1', compressedEvidence[0]);
+    }
+    if (compressedEvidence[1]) {
+      formData.append('evidence2', compressedEvidence[1]);
+    }
+    if (compressedEvidence[2]) {
+      formData.append('evidence3', compressedEvidence[2]);
+    }
     
     const result = await submitReimbursement(formData);
     
@@ -62,12 +92,106 @@ export default function SubmitPage() {
 
     if (result.success) {
       formRef.current?.reset();
+      setReceiptFile(null);
+      setEvidenceFiles([null, null, null]);
+      setCompressedReceipt(null);
+      setCompressedEvidence([null, null, null]);
       // Refresh metrik jika berhasil submit
       getTechnicianStats().then((data) => { if (data) setStats(data); });
     }
   };
 
+
   const formatRp = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+
+  // Fungsi kompresi gambar client-side
+  const compressImage = async (file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Compression failed'));
+              }
+            },
+            'image/jpeg',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
+  };
+
+  // Handler untuk receipt dengan kompresi
+  const handleReceiptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setReceiptFile(file);
+    if (file) {
+      try {
+        const compressed = await compressImage(file);
+        setCompressedReceipt(compressed);
+      } catch (err) {
+        console.error('Compression error:', err);
+        setCompressedReceipt(file); // fallback ke original
+      }
+    } else {
+      setCompressedReceipt(null);
+    }
+  };
+
+  // Handler untuk evidence dengan kompresi
+  const handleEvidenceChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0] || null;
+    const newFiles = [...evidenceFiles];
+    newFiles[index] = file;
+    setEvidenceFiles(newFiles);
+    
+    if (file) {
+      try {
+        const compressed = await compressImage(file);
+        const newCompressed = [...compressedEvidence];
+        newCompressed[index] = compressed;
+        setCompressedEvidence(newCompressed);
+      } catch (err) {
+        console.error('Compression error:', err);
+        const newCompressed = [...compressedEvidence];
+        newCompressed[index] = file; // fallback ke original
+        setCompressedEvidence(newCompressed);
+      }
+    } else {
+      const newCompressed = [...compressedEvidence];
+      newCompressed[index] = null;
+      setCompressedEvidence(newCompressed);
+    }
+  };
+
 
   return (
     // Latar Belakang Utama Dark Theme
@@ -118,7 +242,7 @@ export default function SubmitPage() {
               <p className="text-2xl font-black text-indigo-400 mt-0.5">{stats.queuePosition > 0 ? `#${stats.queuePosition}` : '-'}</p>
             </div>
             <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-sm flex flex-col justify-center backdrop-blur-sm">
-              <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Perlu Cek</p>
+              <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Sedang Cek</p>
               <p className="text-sm font-bold text-amber-400 mt-1">{formatRp(stats.pending)}</p>
             </div>
             <div className="bg-slate-800/50 p-4 rounded-2xl border border-slate-700/50 shadow-sm flex flex-col justify-center backdrop-blur-sm">
@@ -145,7 +269,8 @@ export default function SubmitPage() {
           )}
 
           {/* FORM UTAMA (DARK MODE) */}
-          <form ref={formRef} action={handleSubmit} className="space-y-6 bg-slate-800/50 p-6 sm:p-8 rounded-[2rem] shadow-lg border border-slate-700/50 backdrop-blur-sm">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 bg-slate-800/50 p-6 sm:p-8 rounded-[2rem] shadow-lg border border-slate-700/50 backdrop-blur-sm">
+
             
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
@@ -188,8 +313,9 @@ export default function SubmitPage() {
                   accept="image/*" 
                   required 
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                  onChange={handleReceiptChange}
                 />
+
                 <div className={`w-14 h-14 rounded-full shadow-inner border mb-3 flex items-center justify-center transition-all duration-300 ${receiptFile ? 'bg-emerald-900/50 border-emerald-500/50 scale-110' : 'bg-slate-900 border-slate-700/50 group-hover:scale-110 group-hover:border-indigo-500/50'}`}>
                   <span className="text-2xl">{receiptFile ? '✅' : '🧾'}</span>
                 </div>
@@ -216,12 +342,9 @@ export default function SubmitPage() {
                       accept="image/*" 
                       required 
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                      onChange={(e) => {
-                        const newFiles = [...evidenceFiles];
-                        newFiles[num-1] = e.target.files?.[0] || null;
-                        setEvidenceFiles(newFiles);
-                      }}
+                      onChange={(e) => handleEvidenceChange(e, num-1)}
                     />
+
                     <span className={`text-2xl mb-2 transition-all duration-300 ${evidenceFiles[num-1] ? '' : 'grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-100'}`}>
                       {evidenceFiles[num-1] ? '✅' : '📸'}
                     </span>
