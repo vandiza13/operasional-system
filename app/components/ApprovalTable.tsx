@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 interface Attachment {
   id: string;
@@ -35,6 +36,9 @@ export default function ApprovalTable({
   const [loading, setLoading] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  
+  // State untuk Lightbox Gambar
+  const [selectedImg, setSelectedImg] = useState<string | null>(null);
 
   const startEdit = (expense: Expense) => {
     setEditingId(expense.id);
@@ -53,8 +57,9 @@ export default function ApprovalTable({
       formData.append('id', id);
       formData.append('amount', amount);
       await approveAction(formData);
+      toast.success('Laporan berhasil disetujui!');
     } catch (error) {
-      alert('Failed to approve report');
+      toast.error('Gagal menyetujui laporan');
     } finally {
       setLoading(null);
       setEditingId(null);
@@ -68,8 +73,9 @@ export default function ApprovalTable({
       formData.append('id', id);
       formData.append('amount', String(currentAmount));
       await approveAction(formData);
+      toast.success('Laporan berhasil disetujui!');
     } catch (error) {
-      alert('Failed to approve report');
+      toast.error('Gagal menyetujui laporan');
     } finally {
       setLoading(null);
     }
@@ -87,7 +93,7 @@ export default function ApprovalTable({
 
   const handleReject = async (id: string) => {
     if (!rejectReason.trim()) {
-      alert('Rejection reason is required!');
+      toast.error('Alasan penolakan wajib diisi!');
       return;
     }
     
@@ -97,8 +103,9 @@ export default function ApprovalTable({
       formData.append('id', id);
       formData.append('reason', rejectReason);
       await rejectAction(formData);
+      toast.success('Laporan berhasil ditolak');
     } catch (error) {
-      alert('Failed to reject report');
+      toast.error('Gagal menolak laporan');
     } finally {
       setLoading(null);
       setRejectingId(null);
@@ -131,9 +138,37 @@ export default function ApprovalTable({
     );
   }
 
-
   return (
     <div className="space-y-4">
+      {/* --- LIGHTBOX MODAL (POP-UP GAMBAR) --- */}
+      {selectedImg && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+          onClick={() => setSelectedImg(null)}
+        >
+          <div className="relative max-w-5xl w-full h-full flex items-center justify-center p-4">
+             {/* Gambar Utama */}
+             <img 
+               src={selectedImg} 
+               alt="Evidence Fullscreen" 
+               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+             />
+             
+             {/* Tombol Close (Pojok Kanan Atas) */}
+             <button 
+                onClick={() => setSelectedImg(null)}
+                className="absolute top-4 right-4 bg-slate-800/80 text-white rounded-full p-2 hover:bg-slate-700 transition-colors"
+             >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+             </button>
+             
+             <p className="absolute bottom-4 left-0 right-0 text-center text-slate-400 text-sm pointer-events-none">
+                Klik dimana saja untuk menutup
+             </p>
+          </div>
+        </div>
+      )}
+
       {expenses.map((item) => {
         const receipt = item.attachments?.find((a) => a.type === 'RECEIPT')?.fileUrl;
         const ev1 = item.attachments?.find((a) => a.type === 'EVIDENCE_1')?.fileUrl;
@@ -163,7 +198,6 @@ export default function ApprovalTable({
               </div>
             </div>
 
-
             {/* Content */}
             <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Kolom 1: Deskripsi */}
@@ -174,57 +208,47 @@ export default function ApprovalTable({
                 </p>
               </div>
 
-
-              {/* Kolom 2: Bukti Foto */}
+              {/* Kolom 2: Bukti Foto (TOMBOL LIGHTBOX) */}
               <div className="space-y-3">
                 <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Photo Evidence</h4>
                 <div className="flex flex-wrap gap-2">
                   {receipt && (
-                    <a 
-                      href={receipt} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button 
+                      onClick={() => setSelectedImg(receipt)}
                       className="bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-indigo-500/30 transition-all flex items-center gap-2"
                     >
                       🧾 Main Receipt
-                    </a>
+                    </button>
                   )}
                   {ev1 && (
-                    <a 
-                      href={ev1} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button 
+                      onClick={() => setSelectedImg(ev1)}
                       className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-all border border-slate-600/50 flex items-center gap-2"
                     >
                       📸 Evidence 1
-                    </a>
+                    </button>
                   )}
                   {ev2 && (
-                    <a 
-                      href={ev2} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button 
+                      onClick={() => setSelectedImg(ev2)}
                       className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-all border border-slate-600/50 flex items-center gap-2"
                     >
                       📸 Evidence 2
-                    </a>
+                    </button>
                   )}
                   {ev3 && (
-                    <a 
-                      href={ev3} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
+                    <button 
+                      onClick={() => setSelectedImg(ev3)}
                       className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold transition-all border border-slate-600/50 flex items-center gap-2"
                     >
                       📸 Evidence 3
-                    </a>
+                    </button>
                   )}
                   {!receipt && !ev1 && !ev2 && !ev3 && (
                     <span className="text-xs text-slate-500 italic">No attachments</span>
                   )}
                 </div>
               </div>
-
 
               {/* Kolom 3: Nominal & Aksi */}
               <div className="space-y-3">

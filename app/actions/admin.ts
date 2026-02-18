@@ -6,13 +6,12 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
-import { ExpenseStatus, TransactionType } from '@prisma/client'; // [BARU] Import Enum dari Prisma
+import { ExpenseStatus, TransactionType } from '@prisma/client';
 
 // ============================================================================
 // 1. FUNGSI PERSETUJUAN (VERIFIKASI SATU PER SATU)
 // ============================================================================
 
-// Approve expense report (TETAP SAMA)
 export async function approveReimbursement(formData: FormData) {
   const id = formData.get('id') as string;
   const newAmount = formData.get('amount') as string;
@@ -26,7 +25,7 @@ export async function approveReimbursement(formData: FormData) {
       data: {
         status: 'APPROVED',
         approvedAt: new Date(),
-        approvedById: adminId,
+        approvedById: adminId, // Di sini Foreign Key opsional (nullable), jadi lebih aman, tapi sebaiknya validasi juga.
         amount: newAmount ? parseFloat(newAmount) : undefined,
       }
     });
@@ -38,7 +37,6 @@ export async function approveReimbursement(formData: FormData) {
   }
 }
 
-// Reject expense report (TETAP SAMA)
 export async function rejectReimbursement(formData: FormData) {
   const id = formData.get('id') as string;
   const reason = formData.get('reason') as string;
@@ -70,10 +68,9 @@ export async function rejectReimbursement(formData: FormData) {
 }
 
 // ============================================================================
-// 2. FUNGSI SALDO & PENCAIRAN (FITUR BARU)
+// 2. FUNGSI SALDO & PENCAIRAN (DENGAN VALIDASI DATABASE)
 // ============================================================================
 
-// Ambil Saldo Saat Ini
 export async function getCurrentBalance() {
   try {
     const lastLedger = await prisma.operationalLedger.findFirst({
@@ -86,7 +83,6 @@ export async function getCurrentBalance() {
   }
 }
 
-// Top-Up Saldo Operasional (Dana Masuk)
 export async function topUpLedger(formData: FormData) {
   const amountStr = formData.get('amount') as string;
   const description = formData.get('description') as string;
@@ -99,6 +95,12 @@ export async function topUpLedger(formData: FormData) {
     const adminId = cookieStore.get('userId')?.value;
     if (!adminId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
 
+    // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
+    const adminUser = await prisma.user.findUnique({ where: { id: adminId } });
+    if (!adminUser) {
+      return { success: false, message: 'Akun Admin tidak valid. Mohon logout dan login ulang.' };
+    }
+
     await prisma.$transaction(async (tx) => {
       const lastLedger = await tx.operationalLedger.findFirst({ orderBy: { createdAt: 'desc' } });
       const currentBalance = lastLedger ? Number(lastLedger.balance) : 0;
@@ -110,7 +112,7 @@ export async function topUpLedger(formData: FormData) {
           amount: amount,
           balance: newBalance,
           description: description || 'Top-Up Saldo Operasional',
-          createdBy: adminId
+          createdBy: adminUser.id // Gunakan ID yang tervalidasi
         }
       });
     });
@@ -123,7 +125,6 @@ export async function topUpLedger(formData: FormData) {
   }
 }
 
-// [PENGGANTI payReimbursement LAMA] Pencairan Konsolidasi Per Teknisi
 export async function payoutTechnician(formData: FormData) {
   const technicianId = formData.get('technicianId') as string;
   
@@ -132,9 +133,19 @@ export async function payoutTechnician(formData: FormData) {
     const adminId = cookieStore.get('userId')?.value;
     if (!adminId) return { success: false, message: 'Sesi admin tidak ditemukan.' };
 
-    // Gunakan Transaction agar jika saldo kurang, semuanya DIBATALKAN otomatis
+    // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
+    const adminUser = await prisma.user.findUnique({ 
+      where: { id: adminId },
+      select: { id: true } // Kita hanya butuh ID-nya untuk memastikan eksistensi
+    });
+    
+    if (!adminUser) {
+      return { success: false, message: 'Akun Admin tidak valid/dihapus. Mohon logout dan login ulang.' };
+    }
+
+    // Gunakan Transaction
     const result = await prisma.$transaction(async (tx) => {
-      // a. Cari semua bon teknisi ini yang siap cair (APPROVED)
+      // a. Cari bon approved
       const approvedExpenses = await tx.expense.findMany({
         where: { userId: technicianId, status: ExpenseStatus.APPROVED }
       });
@@ -143,28 +154,27 @@ export async function payoutTechnician(formData: FormData) {
         throw new Error('Tidak ada bon yang siap dicairkan.');
       }
 
-      // b. Hitung total pencairan
+      // b. Hitung total
       const totalPayout = approvedExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
-      // c. Cek Saldo Kas
+      // c. Cek Saldo
       const lastLedger = await tx.operationalLedger.findFirst({ orderBy: { createdAt: 'desc' } });
       const currentBalance = lastLedger ? Number(lastLedger.balance) : 0;
 
-      // 🔥 VALIDASI: Tolak jika uang tidak cukup
       if (currentBalance < totalPayout) {
         throw new Error(`Saldo Operasional tidak cukup! (Sisa: Rp ${currentBalance.toLocaleString('id-ID')})`);
       }
 
-      // d. Buat Batch Pencairan
+      // d. Buat Batch Pencairan (Gunakan adminUser.id yang VALID)
       const payoutBatch = await tx.payoutBatch.create({
         data: {
           technicianId: technicianId,
           totalAmount: totalPayout,
-          paidById: adminId,
+          paidById: adminUser.id, // ✅ AMAN: ID ini pasti ada di tabel User
         }
       });
 
-      // e. Potong Buku Kas
+      // e. Potong Buku Kas (Gunakan adminUser.id yang VALID)
       const newBalance = currentBalance - totalPayout;
       await tx.operationalLedger.create({
         data: {
@@ -172,12 +182,12 @@ export async function payoutTechnician(formData: FormData) {
           amount: totalPayout,
           balance: newBalance,
           description: `Pencairan gabungan (${approvedExpenses.length} Bon) untuk Teknisi`,
-          createdBy: adminId,
+          createdBy: adminUser.id, // ✅ AMAN
           payoutBatchId: payoutBatch.id
         }
       });
 
-      // f. Ubah Status Bon Menjadi PAID Serentak
+      // f. Update status Bon
       const expenseIds = approvedExpenses.map(e => e.id);
       await tx.expense.updateMany({
         where: { id: { in: expenseIds } },

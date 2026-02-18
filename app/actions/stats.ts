@@ -77,3 +77,84 @@ export async function getTechnicianStats(month?: string) {
     return null;
   }
 }
+
+// ============================================================================
+// FUNGSI BARU: AMBIL RIWAYAT KLAIM TEKNISI (DENGAN FEEDBACK REJECT)
+// ============================================================================
+
+export interface ClaimHistory {
+  id: string;
+  expenseDate: Date;
+  categoryName: string;
+  amount: number;
+  status: string;
+  description: string | null;
+  rejectionReason: string | null;
+  createdAt: Date;
+}
+
+export async function getTechnicianClaims(month?: string): Promise<ClaimHistory[] | null> {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('userId')?.value;
+    
+    if (!userId) return null;
+
+    // Filter bulan (sama seperti getTechnicianStats)
+    let dateFilter = {};
+    if (month) {
+      const year = parseInt(month.split('-')[0]);
+      const monthIndex = parseInt(month.split('-')[1]) - 1;
+      const startDate = new Date(Date.UTC(year, monthIndex, 1, -7, 0, 0, 0));
+      const endDate = new Date(Date.UTC(year, monthIndex + 1, 0, 23 - 7, 59, 59, 999));
+      dateFilter = {
+        expenseDate: {
+          gte: startDate,
+          lte: endDate,
+        }
+      };
+    }
+
+    const expenses = await prisma.expense.findMany({
+      where: { 
+        userId, 
+        ...dateFilter 
+      },
+      include: {
+        category: {
+          select: { name: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Parse rejection reason dari description
+    const claims: ClaimHistory[] = expenses.map(expense => {
+      let rejectionReason: string | null = null;
+      
+      // Cek apakah ada prefix "REJECTED:" di description
+      if (expense.description && expense.description.includes('REJECTED:')) {
+        const match = expense.description.match(/REJECTED:\s*(.+?)(?:\n|$)/);
+        if (match) {
+          rejectionReason = match[1].trim();
+        }
+      }
+
+      return {
+        id: expense.id,
+        expenseDate: expense.expenseDate,
+        categoryName: expense.category.name,
+        amount: Number(expense.amount),
+        status: expense.status,
+        description: expense.description,
+        rejectionReason,
+        createdAt: expense.createdAt
+      };
+    });
+
+    return claims;
+  } catch (error) {
+    console.error('Error fetching technician claims:', error);
+    return null;
+  }
+}

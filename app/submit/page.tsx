@@ -2,10 +2,11 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { submitReimbursement } from '@/app/actions/reimbursement';
-import { getTechnicianStats } from '@/app/actions/stats';
+import { getTechnicianStats, getTechnicianClaims, ClaimHistory } from '@/app/actions/stats';
 import { getCurrentUser } from '@/app/actions/user';
 import { getAllCategories } from '@/app/actions/categories';
 import LogoutButton from '@/app/components/LogoutButton';
+
 
 type Category = { id: string, name: string };
 type UserProfile = { name: string; nik: string | null; position: string | null; phone: string | null };
@@ -18,8 +19,9 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   
-  // [BARU] State Navigasi Tab (form atau stats)
-  const [activeTab, setActiveTab] = useState<'form' | 'stats'>('form');
+  // [BARU] State Navigasi Tab (form, stats, atau history)
+  const [activeTab, setActiveTab] = useState<'form' | 'stats' | 'history'>('form');
+
 
   // State untuk menyimpan Bulan Filter (Default: Bulan Ini 'YYYY-MM')
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7));
@@ -28,6 +30,11 @@ export default function SubmitPage() {
   const [stats, setStats] = useState({ pending: 0, approved: 0, paid: 0, queuePosition: 0 });
   const [profile, setProfile] = useState<UserProfile>({ name: "Memuat...", nik: "-", position: "-", phone: "-" });
   const [categories, setCategories] = useState<Category[]>([]);
+  
+  // [BARU] State untuk Riwayat Klaim
+  const [claims, setClaims] = useState<ClaimHistory[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
+
   
   // State tracking file
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -44,6 +51,18 @@ export default function SubmitPage() {
   useEffect(() => {
     getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
   }, [selectedMonth]);
+
+  // [BARU] Fetch Riwayat Klaim saat tab history aktif atau bulan berubah
+  useEffect(() => {
+    if (activeTab === 'history') {
+      setClaimsLoading(true);
+      getTechnicianClaims(selectedMonth).then((data) => {
+        if (data) setClaims(data);
+        setClaimsLoading(false);
+      });
+    }
+  }, [activeTab, selectedMonth]);
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -200,7 +219,7 @@ export default function SubmitPage() {
               onClick={() => setActiveTab('form')}
               className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'form' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
             >
-              📝 Klaim Baru
+              📝 Klaim
             </button>
             <button
               type="button"
@@ -209,7 +228,15 @@ export default function SubmitPage() {
             >
               📊 Statistik
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('history')}
+              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+            >
+              📋 Riwayat
+            </button>
           </div>
+
 
           {/* NOTIFIKASI */}
           {message && (
@@ -354,6 +381,121 @@ export default function SubmitPage() {
 
             </div>
           )}
+
+          {/* ---------------------------------------------------- */}
+          {/* KONTEN TAB 3: RIWAYAT KLAIM (DENGAN FEEDBACK REJECT)   */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'history' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
+              
+              {/* HEADER RIWAYAT & FILTER BULAN */}
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-xl font-black text-white tracking-tight">Riwayat Klaim</h3>
+                
+                <div className="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden">
+                  <span className="text-sm group-hover:scale-110 transition-transform">📅</span>
+                  <div className="text-xs text-white font-bold flex items-center tracking-wide">
+                    {selectedMonthName} <span className="text-indigo-400 mx-1.5 font-black">|</span> {selYear}
+                  </div>
+                  <input
+                    type="month"
+                    value={selectedMonth}
+                    onChange={(e) => e.target.value && setSelectedMonth(e.target.value)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* LOADING STATE */}
+              {claimsLoading && (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
+                </div>
+              )}
+
+              {/* EMPTY STATE */}
+              {!claimsLoading && claims.length === 0 && (
+                <div className="bg-slate-800/30 border-2 border-dashed border-slate-700/50 rounded-3xl p-12 text-center backdrop-blur-sm">
+                  <div className="text-5xl mb-4 grayscale opacity-30">📋</div>
+                  <p className="text-slate-400 font-bold text-lg">Belum Ada Klaim</p>
+                  <p className="text-slate-500 text-sm mt-2">Tidak ada data klaim untuk periode ini.</p>
+                </div>
+              )}
+
+              {/* LIST KLAIM */}
+              {!claimsLoading && claims.length > 0 && (
+                <div className="space-y-3">
+                  {claims.map((claim) => {
+                    // Status badge config
+                    const statusConfig = {
+                      PENDING: { color: 'amber', icon: '⏳', label: 'Menunggu' },
+                      APPROVED: { color: 'blue', icon: '✓', label: 'Disetujui' },
+                      PAID: { color: 'emerald', icon: '✅', label: 'Sudah Cair' },
+                      REJECTED: { color: 'rose', icon: '✕', label: 'Ditolak' }
+                    };
+                    const status = statusConfig[claim.status as keyof typeof statusConfig] || statusConfig.PENDING;
+
+                    return (
+                      <div 
+                        key={claim.id} 
+                        className={`bg-slate-800/50 rounded-2xl border shadow-sm backdrop-blur-sm overflow-hidden ${
+                          claim.status === 'REJECTED' ? 'border-rose-500/30' : 'border-slate-700/50'
+                        }`}
+                      >
+                        {/* Header Card */}
+                        <div className={`px-4 py-3 border-b flex items-center justify-between ${
+                          claim.status === 'REJECTED' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-900/30 border-slate-700/30'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${
+                              claim.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                              claim.status === 'APPROVED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                              claim.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                              'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                            }`}>
+                              {status.icon} {status.label}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {new Date(claim.expenseDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-white truncate">{claim.categoryName}</p>
+                              {claim.description && claim.status !== 'REJECTED' && (
+                                <p className="text-xs text-slate-400 mt-1 line-clamp-2">{claim.description}</p>
+                              )}
+                            </div>
+                            <p className="text-lg font-black text-emerald-400 whitespace-nowrap">
+                              {formatRp(claim.amount)}
+                            </p>
+                          </div>
+
+                          {/* REJECTION REASON - HIGHLIGHTED */}
+                          {claim.status === 'REJECTED' && claim.rejectionReason && (
+                            <div className="mt-3 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
+                              <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                <span>🚫</span> Alasan Penolakan
+                              </p>
+                              <p className="text-sm font-semibold text-rose-300 leading-relaxed">
+                                {claim.rejectionReason}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+            </div>
+          )}
+
 
           <div className="text-center mt-8 pb-8">
             <p className="text-xs text-slate-500 font-medium">Sistem Operasional Internal © 2026</p>
