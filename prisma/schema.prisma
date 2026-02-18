@@ -31,21 +31,33 @@ enum AttachmentType {
   EVIDENCE_3
 }
 
+// [BARU] Tipe transaksi untuk Buku Kas
+enum TransactionType {
+  TOP_UP       // Dana Masuk dari Pusat
+  DISBURSEMENT // Dana Keluar untuk Pencairan Bon
+}
+
 model User {
-  id               String            @id @default(cuid())
-  nik              String?           @unique // NIK Karyawan
-  name             String            // Nama Lengkap
-  email            String            @unique
-  phone            String?           // Nomor Telepon
-  position         String?           // Jabatan / Position Name
+  id               String              @id @default(cuid())
+  nik              String?             @unique // NIK Karyawan
+  name             String              // Nama Lengkap
+  email            String              @unique
+  phone            String?             // Nomor Telepon
+  position         String?             // Jabatan / Position Name
   password         String
-  role             Role              @default(TECHNICIAN)
+  role             Role                @default(TECHNICIAN)
   
-  expenses         Expense[]         @relation("UserExpenses")
-  approvedExpenses Expense[]         @relation("AdminApprover")
+  // Relasi Lama
+  expenses         Expense[]           @relation("UserExpenses")
+  approvedExpenses Expense[]           @relation("AdminApprover")
+
+  // [BARU] Relasi untuk fitur Saldo & Pencairan
+  ledgersCreated   OperationalLedger[] @relation("AdminLedger")
+  payoutsReceived  PayoutBatch[]       @relation("TechnicianPayouts")
+  payoutsProcessed PayoutBatch[]       @relation("AdminPayoutBatch")
   
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
   @@index([role])
 }
@@ -81,6 +93,10 @@ model Expense {
 
   attachments      ExpenseAttachment[]
 
+  // [BARU] Relasi ke Batch Pencairan
+  payoutBatchId    String?
+  payoutBatch      PayoutBatch?        @relation(fields: [payoutBatchId], references: [id])
+
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
@@ -88,6 +104,7 @@ model Expense {
   @@index([userId])
   @@index([createdAt])
   @@index([expenseDate])
+  @@index([payoutBatchId]) // [BARU] Index untuk performa query pencairan
 }
 
 model ExpenseAttachment {
@@ -101,4 +118,53 @@ model ExpenseAttachment {
 
   @@index([expenseId])
   @@index([type])
+}
+
+// [BARU] Model untuk mencatat riwayat Buku Kas / Saldo Operasional
+model OperationalLedger {
+  id            String          @id @default(cuid())
+  type          TransactionType
+  amount        Decimal         @db.Decimal(12, 2)
+  balance       Decimal         @db.Decimal(12, 2) // Sisa saldo setelah transaksi ini
+  description   String          @db.Text
+  
+  // Admin/Super Admin yang melakukan Top-Up atau Pencairan
+  createdBy     String
+  admin         User            @relation("AdminLedger", fields: [createdBy], references: [id])
+  
+  // Relasi jika transaksi ini adalah pencairan bon
+  payoutBatchId String?         @unique
+  payoutBatch   PayoutBatch?    @relation(fields: [payoutBatchId], references: [id])
+
+  createdAt     DateTime        @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+// [BARU] Model untuk mengelompokkan bon yang dicairkan sekaligus
+model PayoutBatch {
+  id            String    @id @default(cuid())
+  
+  // Teknisi yang menerima pencairan
+  technicianId  String
+  technician    User      @relation("TechnicianPayouts", fields: [technicianId], references: [id])
+  
+  // Total nominal dari gabungan bon yang dicairkan
+  totalAmount   Decimal   @db.Decimal(12, 2)
+  
+  // Relasi balik ke riwayat buku kas
+  ledger        OperationalLedger?
+  
+  // Bon-bon apa saja yang dicairkan di batch ini
+  expenses      Expense[] 
+  
+  // Admin yang melakukan pencairan
+  paidById      String
+  admin         User      @relation("AdminPayoutBatch", fields: [paidById], references: [id])
+  
+  createdAt     DateTime  @default(now())
+
+  @@index([technicianId])
+  @@index([createdAt])
 }

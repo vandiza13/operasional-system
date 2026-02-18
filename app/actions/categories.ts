@@ -3,9 +3,6 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
-/**
- * Ambil semua kategori pengeluaran
- */
 export async function getAllCategories() {
   try {
     const categories = await prisma.expenseCategory.findMany({
