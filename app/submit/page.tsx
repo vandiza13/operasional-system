@@ -77,6 +77,12 @@ export default function SubmitPage() {
     formData.append('categoryId', (form.elements.namedItem('categoryId') as HTMLSelectElement).value);
     formData.append('expenseDate', (form.elements.namedItem('expenseDate') as HTMLInputElement).value);
 
+    const kmBeforeEl = form.elements.namedItem('kmBefore') as HTMLInputElement;
+    if (kmBeforeEl && kmBeforeEl.value) formData.append('kmBefore', kmBeforeEl.value);
+
+    const kmAfterEl = form.elements.namedItem('kmAfter') as HTMLInputElement;
+    if (kmAfterEl && kmAfterEl.value) formData.append('kmAfter', kmAfterEl.value);
+
     if (compressedReceipt) formData.append('receipt', compressedReceipt);
     if (compressedEvidence[0]) formData.append('evidence1', compressedEvidence[0]);
     if (compressedEvidence[1]) formData.append('evidence2', compressedEvidence[1]);

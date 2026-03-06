@@ -26,6 +26,7 @@ export default function AdminClientLayout({
   const superAdminMenuItems = [
     { name: 'Manajemen User', path: '/admin/users', icon: '👑' },
     { name: 'Kategori Biaya', path: '/admin/categories', icon: '📁' },
+    { name: 'Kelola Bon', path: '/admin/manage', icon: '🧾' },
   ];
 
   // Gabungkan menu jika rolenya SUPER_ADMIN
@@ -62,8 +63,8 @@ export default function AdminClientLayout({
             return (
               <Link key={item.path} href={item.path}>
                 <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all duration-200 ${isActive
-                    ? 'bg-indigo-500/10 text-indigo-400 shadow-sm border border-indigo-500/20'
-                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-indigo-300 border border-transparent'
+                  ? 'bg-indigo-500/10 text-indigo-400 shadow-sm border border-indigo-500/20'
+                  : 'text-slate-400 hover:bg-slate-800/50 hover:text-indigo-300 border border-transparent'
                   }`}>
                   <span className={`text-xl ${!isActive && 'grayscale opacity-70'}`}>{item.icon}</span>
                   <span className="text-sm">{item.name}</span>
@@ -82,8 +83,8 @@ export default function AdminClientLayout({
                 return (
                   <Link key={item.path} href={item.path}>
                     <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all duration-200 ${isActive
-                        ? 'bg-rose-500/10 text-rose-400 shadow-sm border border-rose-500/20'
-                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-rose-300 border border-transparent'
+                      ? 'bg-rose-500/10 text-rose-400 shadow-sm border border-rose-500/20'
+                      : 'text-slate-400 hover:bg-slate-800/50 hover:text-rose-300 border border-transparent'
                       }`}>
                       <span className={`text-xl ${!isActive && 'grayscale opacity-70'}`}>{item.icon}</span>
                       <span className="text-sm">{item.name}</span>
@@ -126,8 +127,8 @@ export default function AdminClientLayout({
                 <div className="flex flex-col items-center justify-center py-2">
                   <span className={`text-xl mb-1 ${!isActive && 'grayscale opacity-50'}`}>{item.icon}</span>
                   <span className={`text-[9px] font-bold ${isActive
-                      ? (isSuperMenu ? 'text-rose-400' : 'text-indigo-400')
-                      : 'text-slate-500'
+                    ? (isSuperMenu ? 'text-rose-400' : 'text-indigo-400')
+                    : 'text-slate-500'
                     }`}>
                     {item.name.split(' ')[0]}
                   </span>

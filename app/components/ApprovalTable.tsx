@@ -243,18 +243,16 @@ export default function ApprovalTable({
                 <p className="text-sm font-medium text-slate-300 leading-relaxed">
                   {item.description || 'No description'}
                 </p>
-                {(item.kmBefore !== null || item.kmAfter !== null) && (
-                  <div className="mt-3 pt-3 border-t border-slate-700/50 grid grid-cols-2 gap-2">
-                    <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sebelum</p>
-                      <p className="text-sm font-bold text-white text-center mt-0.5">{item.kmBefore || '-'}</p>
-                    </div>
-                    <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
-                      <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sesudah</p>
-                      <p className="text-sm font-bold text-white text-center mt-0.5">{item.kmAfter || '-'}</p>
-                    </div>
+                <div className="mt-3 pt-3 border-t border-slate-700/50 grid grid-cols-2 gap-2">
+                  <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sebelum</p>
+                    <p className="text-sm font-bold text-white text-center mt-0.5">{item.kmBefore ?? '-'}</p>
                   </div>
-                )}
+                  <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sesudah</p>
+                    <p className="text-sm font-bold text-white text-center mt-0.5">{item.kmAfter ?? '-'}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Kolom 2: Bukti Foto (TOMBOL LIGHTBOX) */}
