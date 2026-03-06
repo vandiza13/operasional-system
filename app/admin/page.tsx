@@ -58,7 +58,8 @@ export default async function AdminDashboard({
   const formatRupiah = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 
   // Nama bulan untuk ditampilkan di UI
-  const monthName = startDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const MONTHS_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const monthName = `${MONTHS_ID[monthIndex]} ${year}`;
 
   return (
     <div className="space-y-6">

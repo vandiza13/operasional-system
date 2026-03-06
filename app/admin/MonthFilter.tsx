@@ -64,7 +64,7 @@ export default function MonthFilter() {
       </div>
 
       {isOpen && (
-        <div className="absolute top-full mt-2 right-0 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-4 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+        <div className="absolute top-full mt-2 left-0 sm:left-auto sm:right-0 w-72 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-4 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
           <div className="flex items-center justify-between mb-4 bg-slate-800/50 p-1.5 rounded-xl">
             <button
               onClick={(e) => { e.stopPropagation(); setSelectedYear(prev => prev - 1); }}
@@ -88,8 +88,8 @@ export default function MonthFilter() {
                   key={m}
                   onClick={(e) => { e.stopPropagation(); handleSelectMonth(idx); }}
                   className={`py-2 text-xs font-bold rounded-xl transition-all ${isCurrentSelected
-                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
-                      : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                    : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-white'
                     }`}
                 >
                   {m.substring(0, 3)}

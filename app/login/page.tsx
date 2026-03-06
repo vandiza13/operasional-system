@@ -121,7 +121,7 @@ export default function LoginPage() {
       <div className="text-center mt-10 relative z-10 flex flex-col items-center gap-2">
         <div className="w-12 h-1 bg-slate-800 rounded-full"></div>
         <p className="text-xs text-slate-500 font-bold tracking-widest uppercase">
-          Akses Terbatas • Enkripsi 256-bit<br />© 2026 Hak Cipta Dilindungi
+          • Operasional System •<br />©2026 VandizaDev
         </p>
       </div>
 
