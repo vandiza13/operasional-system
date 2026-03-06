@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import AdminClientLayout from '@/app/admin/AdminClientLayout';
+
 import ManageClaimsTable from '@/app/components/ManageClaimsTable';
 import { Suspense } from 'react';
 
@@ -59,8 +59,14 @@ export default async function ManageClaimsPage() {
         orderBy: { name: 'asc' }
     });
 
+    // Serialize Decimal amount into string for the Client Component
+    const serializedExpenses = allExpenses.map(exp => ({
+        ...exp,
+        amount: exp.amount.toString(),
+    }));
+
     return (
-        <AdminClientLayout userRole={user.role}>
+        <div>
             <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                     <div>
@@ -75,10 +81,10 @@ export default async function ManageClaimsPage() {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
                         </div>
                     }>
-                        <ManageClaimsTable expenses={allExpenses as any} categories={activeCategories} />
+                        <ManageClaimsTable expenses={serializedExpenses as any} categories={activeCategories} />
                     </Suspense>
                 </div>
             </div>
-        </AdminClientLayout>
+        </div>
     );
 }

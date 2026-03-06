@@ -26,6 +26,7 @@ export default function AdminClientLayout({
   const superAdminMenuItems = [
     { name: 'Manajemen User', path: '/admin/users', icon: '👑' },
     { name: 'Kategori Biaya', path: '/admin/categories', icon: '📁' },
+    { name: 'Manajemen Saldo', path: '/admin/ledger', icon: '💰' },
     { name: 'Kelola Bon', path: '/admin/manage', icon: '🧾' },
   ];
 

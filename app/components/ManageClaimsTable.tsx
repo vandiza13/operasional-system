@@ -113,9 +113,9 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                 </td>
                                 <td className="px-5 py-3">
                                     <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${expense.status === 'APPROVED' ? 'bg-indigo-500/10 text-indigo-400' :
-                                            expense.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' :
-                                                expense.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' :
-                                                    'bg-amber-500/10 text-amber-400'
+                                        expense.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400' :
+                                            expense.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400' :
+                                                'bg-amber-500/10 text-amber-400'
                                         }`}>
                                         {expense.status}
                                     </span>
@@ -150,7 +150,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
             {/* EDIT MODAL */}
             {editingClaim && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-slate-900 border border-slate-700/50 rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[90vh]">
+                    <div className="bg-slate-900 border border-slate-700/50 rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] my-auto">
                         <div className="p-6 border-b border-slate-800/60 flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-black text-white">Edit Data Bon</h3>
@@ -167,7 +167,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Status Laporan</label>
-                                    <select name="status" defaultValue={editingClaim.status} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                                    <select name="status" defaultValue={editingClaim.status} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50">
                                         <option value="PENDING">PENDING (Antrean Persetujuan)</option>
                                         <option value="APPROVED">APPROVED (Menunggu Antrean Cair)</option>
                                         <option value="PAID">PAID (Selesai Dibayar)</option>
@@ -177,7 +177,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Kategori Biaya</label>
-                                    <select name="categoryId" defaultValue={editingClaim.category?.id} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium outline-none focus:border-indigo-500 transition-all">
+                                    <select name="categoryId" defaultValue={editingClaim.category?.id} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-medium outline-none focus:border-indigo-500 transition-all disabled:opacity-50">
                                         {categories.map(c => (
                                             <option key={c.id} value={c.id}>{c.name}</option>
                                         ))}
@@ -186,29 +186,37 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nominal (Rp)</label>
-                                    <input type="number" name="amount" defaultValue={editingClaim.amount} required className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black text-lg outline-none focus:border-indigo-500 transition-all" />
+                                    <input type="number" name="amount" defaultValue={editingClaim.amount} required disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black text-lg outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sebelumm</label>
-                                        <input type="number" name="kmBefore" defaultValue={editingClaim.kmBefore ?? ''} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all" />
+                                        <input type="number" name="kmBefore" defaultValue={editingClaim.kmBefore ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sesudah</label>
-                                        <input type="number" name="kmAfter" defaultValue={editingClaim.kmAfter ?? ''} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all" />
+                                        <input type="number" name="kmAfter" defaultValue={editingClaim.kmAfter ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Deskripsi Pekerjaan / Nomer Tiket</label>
-                                    <textarea name="description" defaultValue={editingClaim.description || ''} rows={3} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm font-medium outline-none focus:border-indigo-500 transition-all resize-none"></textarea>
+                                    <textarea name="description" defaultValue={editingClaim.description || ''} rows={3} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm font-medium outline-none focus:border-indigo-500 transition-all resize-none disabled:opacity-50"></textarea>
                                 </div>
 
                             </form>
                         </div>
 
-                        <div className="p-6 border-t border-slate-800/60 bg-slate-900">
+                        <div className="p-6 border-t border-slate-800/60 bg-slate-900 grid grid-cols-2 gap-3 rounded-b-3xl">
+                            <button
+                                type="button"
+                                onClick={() => setEditingClaim(null)}
+                                disabled={isUpdating}
+                                className="w-full px-4 py-3.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all disabled:opacity-50"
+                            >
+                                Batal
+                            </button>
                             <button
                                 type="submit"
                                 form="editClaimForm"
@@ -221,7 +229,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                         Menyimpan...
                                     </>
                                 ) : (
-                                    'Simpan Perubahan'
+                                    'Simpan'
                                 )}
                             </button>
                         </div>

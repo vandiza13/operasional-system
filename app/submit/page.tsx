@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react';
-import { submitReimbursement } from '@/app/actions/reimbursement';
+import { submitReimbursement, getClaimForEdit, updateReimbursement } from '@/app/actions/reimbursement';
 import { getTechnicianStats, getTechnicianClaims, ClaimHistory } from '@/app/actions/stats';
 import { getCurrentUser } from '@/app/actions/user';
 import { getAllCategories } from '@/app/actions/categories';
@@ -42,6 +42,9 @@ export default function SubmitPage() {
   const [evidenceFiles, setEvidenceFiles] = useState<(File | null)[]>([null, null, null]);
   const [compressedReceipt, setCompressedReceipt] = useState<File | null>(null);
   const [compressedEvidence, setCompressedEvidence] = useState<(File | null)[]>([null, null, null]);
+
+  // [BARU] State untuk Modal Edit Klaim
+  const [editingClaimId, setEditingClaimId] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentUser().then((data) => { if (data) setProfile(data as UserProfile); });
@@ -496,9 +499,19 @@ export default function SubmitPage() {
                                 <p className="text-xs text-slate-400 mt-1 line-clamp-2">{claim.description}</p>
                               )}
                             </div>
-                            <p className="text-lg font-black text-emerald-400 whitespace-nowrap">
-                              {formatRp(claim.amount)}
-                            </p>
+                            <div className="flex flex-col items-end gap-2">
+                              <p className="text-lg font-black text-emerald-400 whitespace-nowrap">
+                                {formatRp(claim.amount)}
+                              </p>
+                              {claim.status === 'PENDING' && (
+                                <button
+                                  onClick={() => setEditingClaimId(claim.id)}
+                                  className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-lg border border-indigo-500/20 transition-colors"
+                                >
+                                  ✏️ Edit Bon
+                                </button>
+                              )}
+                            </div>
                           </div>
 
                           {/* REJECTION REASON - HIGHLIGHTED */}
@@ -529,6 +542,284 @@ export default function SubmitPage() {
 
         </div>
       </main>
+
+      {/* MODAL EDIT KLAIM */}
+      {editingClaimId && (
+        <EditClaimModal
+          claimId={editingClaimId}
+          categories={categories}
+          onClose={() => setEditingClaimId(null)}
+          onSuccess={() => {
+            setEditingClaimId(null);
+            setMessage('Laporan Anda berhasil diperbarui!');
+            // Refresh data tab history
+            getTechnicianClaims(selectedMonth).then((data) => { if (data) setClaims(data); });
+            getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
+          }}
+        />
+      )}
+
+    </div>
+  );
+}
+
+// ============================================================================
+// KOMPONEN MODAL EDIT BON OLEH TEKNISI
+// ============================================================================
+function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: string, categories: Category[], onClose: () => void, onSuccess: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Data State
+  const [formData, setFormData] = useState({
+    categoryId: '',
+    expenseDate: '',
+    amount: '',
+    description: '',
+    kmBefore: '',
+    kmAfter: ''
+  });
+
+  // Local File States untuk Update
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [evidenceFiles, setEvidenceFiles] = useState<(File | null)[]>([null, null, null]);
+  const [compressedReceipt, setCompressedReceipt] = useState<File | null>(null);
+  const [compressedEvidence, setCompressedEvidence] = useState<(File | null)[]>([null, null, null]);
+
+  // Load Data
+  useEffect(() => {
+    getClaimForEdit(claimId).then(res => {
+      if (res.success && res.expense) {
+        const d = res.expense;
+        setFormData({
+          categoryId: d.categoryId,
+          expenseDate: new Date(d.expenseDate).toISOString().split('T')[0],
+          amount: String(d.amount),
+          description: d.description || '',
+          kmBefore: d.kmBefore ? String(d.kmBefore) : '',
+          kmAfter: d.kmAfter ? String(d.kmAfter) : ''
+        });
+      } else {
+        setErrorMsg(res.message || 'Gagal memuat data');
+      }
+      setLoading(false);
+    });
+  }, [claimId]);
+
+  // Image Compressor Sama dengan Utama
+  const compressImage = async (file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d'); ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
+            else reject(new Error('Compression failed'));
+          }, 'image/jpeg', quality);
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+    });
+  };
+
+  const handleReceiptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setReceiptFile(file);
+    if (file) {
+      try { setCompressedReceipt(await compressImage(file)); }
+      catch { setCompressedReceipt(file); }
+    } else setCompressedReceipt(null);
+  };
+
+  const handleEvidenceChange = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0] || null;
+    const newFiles = [...evidenceFiles]; newFiles[index] = file; setEvidenceFiles(newFiles);
+    if (file) {
+      try {
+        const compressed = await compressImage(file);
+        const newCompressed = [...compressedEvidence]; newCompressed[index] = compressed; setCompressedEvidence(newCompressed);
+      } catch {
+        const newCompressed = [...compressedEvidence]; newCompressed[index] = file; setCompressedEvidence(newCompressed);
+      }
+    } else {
+      const newCompressed = [...compressedEvidence]; newCompressed[index] = null; setCompressedEvidence(newCompressed);
+    }
+  };
+
+  const handleSubmitEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMsg('');
+
+    const payload = new FormData();
+    payload.append('amount', formData.amount);
+    payload.append('description', formData.description);
+    payload.append('categoryId', formData.categoryId);
+    payload.append('expenseDate', formData.expenseDate);
+    if (formData.kmBefore) payload.append('kmBefore', formData.kmBefore);
+    if (formData.kmAfter) payload.append('kmAfter', formData.kmAfter);
+
+    if (compressedReceipt) payload.append('receipt', compressedReceipt);
+    if (compressedEvidence[0]) payload.append('evidence1', compressedEvidence[0]);
+    if (compressedEvidence[1]) payload.append('evidence2', compressedEvidence[1]);
+    if (compressedEvidence[2]) payload.append('evidence3', compressedEvidence[2]);
+
+    const result = await updateReimbursement(claimId, payload);
+    if (result.success) {
+      onSuccess();
+    } else {
+      setErrorMsg(result.message);
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700/50 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden my-auto max-h-[85vh] flex flex-col">
+
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/20 shrink-0">
+          <div>
+            <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>✏️</span> Edit Bon Laporan
+            </h3>
+            <p className="text-xs text-slate-400 font-medium mt-1">Perbarui data laporan sebelum disetujui Admin</p>
+          </div>
+          <button type="button" disabled={submitting} onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all">✖</button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto custom-scrollbar">
+          {loading ? (
+            <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div></div>
+          ) : errorMsg && !submitting ? (
+            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl mb-4">
+              <p className="text-rose-400 text-sm font-semibold">{errorMsg}</p>
+            </div>
+          ) : (
+            <form id="editForm" onSubmit={handleSubmitEdit} className="space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-400 ml-1">Kategori</label>
+                  <select
+                    required
+                    disabled={submitting}
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm outline-none disabled:opacity-50"
+                    value={formData.categoryId}
+                    onChange={e => setFormData({ ...formData, categoryId: e.target.value })}
+                  >
+                    <option value="">Pilih...</option>
+                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-400 ml-1">Tgl Nota</label>
+                  <input
+                    type="date" required disabled={submitting}
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-white text-sm outline-none disabled:opacity-50"
+                    value={formData.expenseDate}
+                    onChange={e => setFormData({ ...formData, expenseDate: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-400 ml-1">Nominal (Rp)</label>
+                <input
+                  type="number" required min="1" disabled={submitting}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 text-indigo-400 font-bold text-lg outline-none disabled:opacity-50"
+                  value={formData.amount}
+                  onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-400 ml-1">Deskripsi/Tiket</label>
+                <textarea
+                  required rows={2} disabled={submitting}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 text-white text-sm outline-none resize-none disabled:opacity-50"
+                  value={formData.description}
+                  onChange={e => setFormData({ ...formData, description: e.target.value })}
+                ></textarea>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-400 ml-1">KM Sblm (Opsional)</label>
+                  <input type="number" min="0" disabled={submitting} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none disabled:opacity-50" value={formData.kmBefore} onChange={e => setFormData({ ...formData, kmBefore: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-400 ml-1">KM Ssdh (Opsional)</label>
+                  <input type="number" min="0" disabled={submitting} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none disabled:opacity-50" value={formData.kmAfter} onChange={e => setFormData({ ...formData, kmAfter: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-slate-800 my-4"></div>
+
+              <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl mb-4">
+                <p className="text-xs text-indigo-300 font-medium leading-relaxed">
+                  Informasi: Foto/Bukti sebelumnya sudah tersimpan di sistem.
+                  <strong className="font-black text-indigo-200"> Jangan unggah foto apa pun di bawah ini kecuali Anda bermaksud menimpa (mengganti) foto yang salah dengan yang baru.</strong>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-white ml-1">Ganti Foto Struk</label>
+                <div className={`relative border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all ${receiptFile ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 bg-slate-950'}`}>
+                  <input type="file" disabled={submitting} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:opacity-0 disabled:cursor-not-allowed" onChange={handleReceiptChange} />
+                  <span className="text-xl mb-1">{receiptFile ? '✅' : '🧾'}</span>
+                  <p className={`text-[10px] font-bold ${receiptFile ? 'text-emerald-400' : 'text-slate-400'}`}>{receiptFile ? receiptFile.name : 'Ketuk untuk Timpa Foto'}</p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-xs font-bold text-white ml-1 mb-2">Ganti Bukti Lapangan</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 1, label: 'KM Sblm' },
+                    { id: 2, label: 'KM Ssdh' },
+                    { id: 3, label: 'Evid Tambahan' }
+                  ].map((item) => (
+                    <div key={item.id} className={`relative border border-dashed rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer h-20 transition-all ${evidenceFiles[item.id - 1] ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 bg-slate-950'}`}>
+                      <input type="file" disabled={submitting} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" onChange={(e) => handleEvidenceChange(e, item.id - 1)} />
+                      <span className={`text-lg mb-1 transition-all ${evidenceFiles[item.id - 1] ? '' : 'grayscale opacity-50'}`}>
+                        {evidenceFiles[item.id - 1] ? '✅' : '📸'}
+                      </span>
+                      <p className={`text-[8px] font-bold uppercase tracking-wider leading-tight ${evidenceFiles[item.id - 1] ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        {item.label}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-800/20 shrink-0 flex justify-end gap-3">
+          <button type="button" disabled={submitting} onClick={onClose} className="px-4 py-2.5 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all disabled:opacity-50">
+            Batal
+          </button>
+          <button type="submit" form="editForm" disabled={loading || submitting} className="px-6 py-2.5 text-sm font-black text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:shadow-none">
+            {submitting ? (
+              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> Menyimpan...</>
+            ) : "Simpan Perbaikan"}
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 }

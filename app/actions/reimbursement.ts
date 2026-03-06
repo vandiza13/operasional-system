@@ -168,3 +168,146 @@ export async function submitReimbursement(formData: FormData) {
     return { success: false, message: 'Terjadi kesalahan sistem internal.' };
   }
 }
+
+// ============================================================================
+// FUNGSI BARU: AMBIL DATA SPESIFIK UNTUK DI-EDIT OLEH TEKNISI
+// ============================================================================
+export async function getClaimForEdit(expenseId: string) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('userId')?.value;
+    if (!userId) return { success: false, message: 'Sesi habis.' };
+
+    const expense = await prisma.expense.findUnique({
+      where: { id: expenseId, userId: userId }, // Pastikan hanya milik teknisi ybs
+      include: { attachments: true }
+    });
+
+    if (!expense) return { success: false, message: 'Data tidak ditemukan.' };
+
+    // Cegah edit jika sudah diproses
+    if (expense.status !== 'PENDING') {
+      return { success: false, message: 'Klaim ini sudah tidak bisa diedit karena statusnya bukan PENDING.' };
+    }
+
+    // Serialize Prisma Decimal (amount) into a plain number for client usage
+    const serializedExpense = {
+      ...expense,
+      amount: Number(expense.amount),
+    };
+
+    return { success: true, expense: serializedExpense };
+  } catch (error) {
+    console.error('Get Claim Error:', error);
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+// ============================================================================
+// FUNGSI BARU: UPDATE DATA KLAIM OLEH TEKNISI
+// ============================================================================
+export async function updateReimbursement(expenseId: string, formData: FormData) {
+  try {
+    const cookieStore = await cookies();
+    const userId = cookieStore.get('userId')?.value;
+    if (!userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+
+    // 1. Validasi Kepemilikan & Status
+    const existingExpense = await prisma.expense.findUnique({
+      where: { id: expenseId, userId: userId },
+      include: { attachments: true }
+    });
+
+    if (!existingExpense) return { success: false, message: 'Data tidak ditemukan.' };
+    if (existingExpense.status !== 'PENDING') return { success: false, message: 'Data yang sudah diproses tidak bisa diubah.' };
+
+    // 2. Parsial Data Teks
+    const amount = formData.get('amount') as string;
+    const description = formData.get('description') as string;
+    const categoryId = formData.get('categoryId') as string;
+    const expenseDate = formData.get('expenseDate') as string;
+
+    const kmBeforeStr = formData.get('kmBefore') as string;
+    const kmAfterStr = formData.get('kmAfter') as string;
+    const kmBefore = kmBeforeStr ? parseInt(kmBeforeStr, 10) : null;
+    const kmAfter = kmAfterStr ? parseInt(kmAfterStr, 10) : null;
+
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return { success: false, message: 'Nominal tidak valid!' };
+    if (!expenseDate || isNaN(Date.parse(expenseDate))) return { success: false, message: 'Tanggal pengeluaran tidak valid!' };
+    if (!categoryId) return { success: false, message: 'Kategori wajib dipilih!' };
+
+    // 3. Proses File Baru (Hanya jika diunggah)
+    const MAX_FILE_SIZE = 5 * 1024 * 1024;
+
+    const fileKeys: { key: string, type: AttachmentType, folder: string }[] = [
+      { key: 'receipt', type: 'RECEIPT', folder: 'receipts' },
+      { key: 'evidence1', type: 'EVIDENCE_1', folder: 'evidences' },
+      { key: 'evidence2', type: 'EVIDENCE_2', folder: 'evidences' },
+      { key: 'evidence3', type: 'EVIDENCE_3', folder: 'evidences' },
+    ];
+
+    const updatedAttachments: { id?: string, type: AttachmentType, fileUrl: string }[] = [];
+
+    // Pertahankan attachment lama yang tidak di-replace
+    const oldAttachmentsMap = new Map(existingExpense.attachments.map(a => [a.type, a]));
+
+    for (const item of fileKeys) {
+      const file = formData.get(item.key) as File | null;
+
+      if (file && file.size > 0) {
+        if (file.size > MAX_FILE_SIZE) return { success: false, message: `Ukuran file ${item.key} maks 5MB!` };
+        if (!file.type.startsWith('image/')) return { success: false, message: `File ${item.key} harus gambar!` };
+
+        const newUrl = await uploadFile(file, item.folder);
+        if (!newUrl) return { success: false, message: `Gagal mengunggah file ${item.key}.` };
+
+        // Cek jika ada attachment lama dari tipe ini
+        const oldFile = oldAttachmentsMap.get(item.type);
+        if (oldFile) {
+          updatedAttachments.push({ id: oldFile.id, type: item.type, fileUrl: newUrl });
+        } else {
+          updatedAttachments.push({ type: item.type, fileUrl: newUrl });
+        }
+      }
+    }
+
+    // 4. Update Database (Atomic Transaction untuk data + hapus file usang)
+    await prisma.$transaction(async (tx) => {
+      // Update Teks
+      await tx.expense.update({
+        where: { id: expenseId },
+        data: {
+          categoryId,
+          amount: parseFloat(amount),
+          description,
+          kmBefore,
+          kmAfter,
+          expenseDate: new Date(expenseDate),
+        }
+      });
+
+      // Update File (Patching)
+      for (const patch of updatedAttachments) {
+        if (patch.id) {
+          await tx.expenseAttachment.update({
+            where: { id: patch.id },
+            data: { fileUrl: patch.fileUrl }
+          });
+        } else {
+          await tx.expenseAttachment.create({
+            data: { expenseId: expenseId, type: patch.type, fileUrl: patch.fileUrl }
+          });
+        }
+      }
+    });
+
+    revalidatePath('/submit');
+    revalidatePath('/admin');
+    return { success: true, message: 'Perubahan laporan berhasil disimpan!' };
+
+  } catch (error) {
+    console.error('Update Claim Error:', error);
+    return { success: false, message: 'Terjadi kesalahan internal saat menyimpan perubahan.' };
+  }
+}
+
