@@ -118,7 +118,7 @@ export default function AdminClientLayout({
         </header>
 
         {/* BOTTOM NAVIGATION MOBILE - DARK THEME */}
-        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-950 border-t border-slate-800/60 z-30 flex justify-around items-center p-2 pb-safe shadow-[0_-4px_24px_rgba(0,0,0,0.5)] overflow-x-auto">
+        <nav className="md:hidden fixed bottom-0 left-0 w-full bg-slate-950 border-t border-slate-800/60 z-30 flex justify-start items-center p-2 pb-safe shadow-[0_-4px_24px_rgba(0,0,0,0.5)] overflow-x-auto gap-2 px-4">
           {menuItems.map((item) => {
             const isActive = pathname === item.path;
             const isSuperMenu = superAdminMenuItems.some(m => m.path === item.path);

@@ -3,7 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 
 // Protected accounts that cannot be deleted - loaded from environment variables
 const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
@@ -14,6 +14,10 @@ const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
  */
 export async function getAllUsers() {
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     const users = await prisma.user.findMany({
       orderBy: [
         { role: 'desc' },
@@ -142,10 +146,9 @@ export async function resetAndReseedUsers() {
  */
 export async function getCurrentUser() {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-
-    if (!userId) return null;
+    const session = await getSession();
+    if (!session || !session.userId) return null;
+    const userId = session.userId;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -181,6 +184,10 @@ export async function editUser(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     // Check for duplicate email (excluding current user)
     const existing = await prisma.user.findFirst({
       where: {
@@ -218,6 +225,10 @@ export async function resetUserPassword(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     await prisma.user.update({
@@ -244,6 +255,10 @@ export async function deleteUser(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     // Get user to check if it's a protected account
     const user = await prisma.user.findUnique({
       where: { id },

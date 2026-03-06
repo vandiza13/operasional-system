@@ -1,13 +1,13 @@
 import prisma from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 
 export async function GET() {
   try {
     // AUTH CHECK: Hanya SUPER_ADMIN, atau izinkan jika database kosong (initial setup)
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
+    const session = await getSession();
+    const userId = session?.userId;
     const totalUsers = await prisma.user.count();
 
     // Izinkan tanpa auth HANYA jika database kosong (initial setup)

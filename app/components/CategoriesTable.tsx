@@ -9,12 +9,12 @@ interface Category {
   createdAt: Date;
 }
 
-export default function CategoriesTable({ 
-  categories, 
-  updateCategoryAction, 
-  toggleStatusAction, 
-  deleteCategoryAction 
-}: { 
+export default function CategoriesTable({
+  categories,
+  updateCategoryAction,
+  toggleStatusAction,
+  deleteCategoryAction
+}: {
   categories: Category[];
   updateCategoryAction: (formData: FormData) => Promise<void>;
   toggleStatusAction: (formData: FormData) => Promise<void>;
@@ -45,7 +45,7 @@ export default function CategoriesTable({
       alert('Nama kategori tidak boleh kosong!');
       return;
     }
-    
+
     setLoading(`update-${id}`);
     try {
       const formData = new FormData();
@@ -99,10 +99,10 @@ export default function CategoriesTable({
           ✓ {message}
         </div>
       )}
-      
+
       <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 overflow-hidden relative backdrop-blur-sm">
         <div className="overflow-x-auto p-2">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
+          <table className="w-full text-left border-collapse">
             <thead>
               <tr className="text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-700/50">
                 <th className="p-4 pl-6">Nama Kategori</th>
@@ -124,8 +124,8 @@ export default function CategoriesTable({
                   <tr key={cat.id} className="hover:bg-slate-800/80 transition-colors">
                     <td className="p-4 pl-6">
                       {editingId === cat.id ? (
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleUpdate(cat.id)}
@@ -156,14 +156,14 @@ export default function CategoriesTable({
                       <div className="flex items-center justify-end gap-2">
                         {editingId === cat.id ? (
                           <>
-                            <button 
+                            <button
                               onClick={() => handleUpdate(cat.id)}
                               disabled={loading === `update-${cat.id}`}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50"
                             >
                               {loading === `update-${cat.id}` ? '...' : '✓ Simpan'}
                             </button>
-                            <button 
+                            <button
                               onClick={cancelEdit}
                               disabled={loading === `update-${cat.id}`}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-700/50 text-slate-400 hover:bg-slate-700 border border-slate-600/50 transition-all disabled:opacity-50"
@@ -173,7 +173,7 @@ export default function CategoriesTable({
                           </>
                         ) : (
                           <>
-                            <button 
+                            <button
                               onClick={() => startEdit(cat)}
                               disabled={loading !== null}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50"
@@ -181,19 +181,18 @@ export default function CategoriesTable({
                               ✏️ Edit
                             </button>
 
-                            <button 
+                            <button
                               onClick={() => handleToggle(cat.id)}
                               disabled={loading === `toggle-${cat.id}`}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 ${
-                                cat.isActive 
-                                  ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20' 
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 ${cat.isActive
+                                  ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20'
                                   : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
-                              }`}
+                                }`}
                             >
                               {loading === `toggle-${cat.id}` ? '...' : (cat.isActive ? 'Nonaktifkan' : 'Aktifkan')}
                             </button>
 
-                            <button 
+                            <button
                               onClick={() => handleDelete(cat.id, cat.name)}
                               disabled={loading === `delete-${cat.id}`}
                               className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all disabled:opacity-50"

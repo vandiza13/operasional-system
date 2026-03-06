@@ -5,8 +5,8 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
 import { ExpenseStatus, TransactionType } from '@prisma/client';
+import { getSession } from '@/lib/session';
 
 // ============================================================================
 // 1. FUNGSI PERSETUJUAN (VERIFIKASI SATU PER SATU)
@@ -17,9 +17,11 @@ export async function approveReimbursement(formData: FormData) {
   const newAmount = formData.get('amount') as string;
 
   try {
-    const cookieStore = await cookies();
-    const adminId = cookieStore.get('userId')?.value;
-    if (!adminId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+    const adminId = session.userId;
 
     await prisma.expense.update({
       where: { id },
@@ -43,6 +45,11 @@ export async function rejectReimbursement(formData: FormData) {
   const reason = formData.get('reason') as string;
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+
     const expense = await prisma.expense.findUnique({ where: { id } });
     if (!expense) {
       return { success: false, message: 'Expense not found' };
@@ -92,9 +99,11 @@ export async function topUpLedger(formData: FormData) {
     const amount = parseFloat(amountStr);
     if (!amount || amount <= 0) return { success: false, message: 'Nominal tidak valid!' };
 
-    const cookieStore = await cookies();
-    const adminId = cookieStore.get('userId')?.value;
-    if (!adminId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+    const adminId = session.userId;
 
     // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
     const adminUser = await prisma.user.findUnique({ where: { id: adminId } });
@@ -130,9 +139,11 @@ export async function payoutTechnician(formData: FormData) {
   const technicianId = formData.get('technicianId') as string;
 
   try {
-    const cookieStore = await cookies();
-    const adminId = cookieStore.get('userId')?.value;
-    if (!adminId) return { success: false, message: 'Sesi admin tidak ditemukan.' };
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+    const adminId = session.userId;
 
     // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
     const adminUser = await prisma.user.findUnique({
@@ -229,6 +240,10 @@ export async function createTechnician(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) return { success: false, message: 'Email already registered in the system' };
 
@@ -264,6 +279,10 @@ export async function editTechnician(formData: FormData) {
   if (!id || !name || !email) return { success: false, message: 'Incomplete data' };
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     const existing = await prisma.user.findFirst({ where: { email: email, id: { not: id } } });
     if (existing) return { success: false, message: 'Email already used by another user' };
 
@@ -292,6 +311,10 @@ export async function resetTechnicianPassword(formData: FormData) {
   if (!id || !newPassword || newPassword.length < 6) return { success: false, message: 'New password must be at least 6 characters' };
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id },

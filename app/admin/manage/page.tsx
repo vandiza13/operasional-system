@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
 
@@ -6,12 +6,11 @@ import ManageClaimsTable from '@/app/components/ManageClaimsTable';
 import { Suspense } from 'react';
 
 export default async function ManageClaimsPage() {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-
-    if (!userId) {
+    const session = await getSession();
+    if (!session || !session.userId) {
         redirect('/login');
     }
+    const userId = session.userId;
 
     const user = await prisma.user.findUnique({
         where: { id: userId },

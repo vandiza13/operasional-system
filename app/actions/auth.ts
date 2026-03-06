@@ -1,8 +1,8 @@
 'use server'
 
 import prisma from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import bcrypt from 'bcryptjs'; // Import Bcrypt
+import bcrypt from 'bcryptjs';
+import { createSession, deleteSession } from '@/lib/session';
 
 export async function loginUser(formData: FormData) {
   const email = formData.get('email') as string;
@@ -13,23 +13,18 @@ export async function loginUser(formData: FormData) {
       where: { email: email }
     });
 
-    // Jika email tidak ditemukan
     if (!user) {
       return { success: false, message: 'Email atau password salah!' };
     }
 
-    // PENCOCOKAN PASSWORD DENGAN BCRYPT
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
       return { success: false, message: 'Email atau password salah!' };
     }
 
-    // Store session in cookies
-    const cookieStore = await cookies();
-    cookieStore.set('userId', user.id, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-    cookieStore.set('userName', user.name, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
-    cookieStore.set('userRole', user.role, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+    // Create secure session
+    await createSession(user.id, user.name, user.role);
 
     return { success: true, role: user.role, message: 'Login berhasil!' };
 
@@ -40,8 +35,5 @@ export async function loginUser(formData: FormData) {
 }
 
 export async function logoutUser() {
-  const cookieStore = await cookies();
-  cookieStore.delete('userId');
-  cookieStore.delete('userName');
-  cookieStore.delete('userRole');
+  await deleteSession();
 }

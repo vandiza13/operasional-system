@@ -78,7 +78,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
             {/* TABLE DATA */}
             <div className="overflow-x-auto rounded-2xl border border-slate-700/50 bg-slate-900/50">
-                <table className="w-full text-left text-sm whitespace-nowrap">
+                <table className="w-full text-left text-sm">
                     <thead className="bg-slate-800/80 text-slate-300 uppercase text-[10px] font-black tracking-wider">
                         <tr>
                             <th className="px-5 py-4">Tgl Dibuat</th>

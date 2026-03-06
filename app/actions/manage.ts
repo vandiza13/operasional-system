@@ -2,27 +2,30 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 
 /**
  * Validasi Role Super Admin
  */
 async function verifySuperAdmin() {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
+    try {
+        const session = await getSession();
+        if (!session || !session.userId) return null;
+        const userId = session.userId;
 
-    if (!userId) return null;
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, role: true }
+        });
 
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, role: true }
-    });
+        if (!user || user.role !== 'SUPER_ADMIN') {
+            return null;
+        }
 
-    if (!user || user.role !== 'SUPER_ADMIN') {
+        return user;
+    } catch (error) {
         return null;
     }
-
-    return user;
 }
 
 /**

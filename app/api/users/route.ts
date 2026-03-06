@@ -1,5 +1,5 @@
 import { getAllUsers, resetAndReseedUsers } from '@/app/actions/user';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 import prisma from '@/lib/prisma';
 
 /**
@@ -9,9 +9,9 @@ import prisma from '@/lib/prisma';
  */
 
 async function requireSuperAdmin() {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('userId')?.value;
-  if (!userId) return null;
+  const session = await getSession();
+  if (!session || !session.userId) return null;
+  const userId = session.userId;
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
   if (!user || user.role !== 'SUPER_ADMIN') return null;
   return user;

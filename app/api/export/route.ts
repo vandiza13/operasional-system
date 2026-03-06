@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import ExcelJS from 'exceljs';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 
 // Paksa Dynamic agar selalu mengambil data terbaru
 export const dynamic = 'force-dynamic';
@@ -9,9 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     // 1. CEK OTENTIKASI ADMIN
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await getSession();
+    if (!session || !session.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = session.userId;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {

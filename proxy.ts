@@ -1,41 +1,77 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { decrypt } from '@/lib/session';
 
-export function proxy(request: NextRequest) {
-  const userId = request.cookies.get('userId')?.value;
-  const userRole = request.cookies.get('userRole')?.value;
-  const path = request.nextUrl.pathname;
+export async function proxy(request: NextRequest) {
+    const sessionCookie = request.cookies.get('session');
+    let session = null;
 
-  // 1. Cegat tamu tak diundang (Belum login)
-  if (!userId && (path.startsWith('/submit') || path.startsWith('/admin') || path.startsWith('/profile'))) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  // 2. Cegah user yang sudah login untuk membuka halaman /login lagi
-  if (userId && path.startsWith('/login')) {
-    // Admin & Super Admin diarahkan ke /admin
-    if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
-      return NextResponse.redirect(new URL('/admin', request.url));
+    if (sessionCookie) {
+        session = await decrypt(sessionCookie.value);
     }
-    // Teknisi diarahkan ke /submit
-    return NextResponse.redirect(new URL('/submit', request.url));
-  }
 
-  // 3. ATURAN KETAT ADMIN PORTAL: Hanya role ADMIN dan SUPER_ADMIN yang boleh ke /admin
-  if (path.startsWith('/admin') && userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
-    return NextResponse.redirect(new URL('/submit', request.url));
-  }
+    const { pathname } = request.nextUrl;
 
-  // 4. ATURAN KETAT RESET PAGE: Hanya SUPER_ADMIN yang boleh ke /reset
-  if (path.startsWith('/reset') && userRole !== 'SUPER_ADMIN') {
-    if (!userId) return NextResponse.redirect(new URL('/login', request.url));
-    return NextResponse.redirect(new URL('/admin', request.url));
-  }
+    // Protect /admin routes
+    if (pathname.startsWith('/admin')) {
+        if (!session) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        if (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN') {
+            // If a technician tries to access admin, redirect to submit
+            return NextResponse.redirect(new URL('/submit', request.url));
+        }
+    }
 
-  return NextResponse.next();
+    // Protect /submit routes
+    if (pathname.startsWith('/submit')) {
+        if (!session) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        if (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN') {
+            // If an admin tries to access submit, redirect to admin
+            return NextResponse.redirect(new URL('/admin', request.url));
+        }
+    }
+
+    // Redirect root to login or appropriate dashboard
+    if (pathname === '/') {
+        if (!session) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        } else if (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN') {
+            return NextResponse.redirect(new URL('/admin', request.url));
+        } else {
+            return NextResponse.redirect(new URL('/submit', request.url));
+        }
+    }
+
+    // Block logged-in users from /login
+    if (pathname === '/login' && session) {
+        if (session.userRole === 'ADMIN' || session.userRole === 'SUPER_ADMIN') {
+            return NextResponse.redirect(new URL('/admin', request.url));
+        } else {
+            return NextResponse.redirect(new URL('/submit', request.url));
+        }
+    }
+
+    // Protect /profile
+    if (pathname.startsWith('/profile') && !session) {
+        return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    // Protect /reset
+    if (pathname.startsWith('/reset')) {
+        if (!session) {
+            return NextResponse.redirect(new URL('/login', request.url));
+        }
+        if (session.userRole !== 'SUPER_ADMIN') {
+            return NextResponse.redirect(new URL('/admin', request.url));
+        }
+    }
+
+    return NextResponse.next();
 }
 
 export const config = {
-  // Memantau rute-rute yang perlu dilindungi
-  matcher: ['/submit/:path*', '/admin/:path*', '/login', '/reset/:path*', '/profile/:path*'],
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|login).*)'],
 };

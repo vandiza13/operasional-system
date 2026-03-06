@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { put } from '@vercel/blob';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 import { AttachmentType } from '@prisma/client';
 
 // Fungsi bantuan untuk mengunggah file (TETAP SAMA SEPERTI MILIK ANDA)
@@ -71,9 +71,9 @@ export async function submitReimbursement(formData: FormData) {
     if (!categoryId) return { success: false, message: 'Kategori wajib dipilih!' };
 
     // 2. CEK SESI USER
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    const session = await getSession();
+    if (!session || !session.userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    const userId = session.userId;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return { success: false, message: 'User tidak ditemukan.' };
@@ -174,9 +174,9 @@ export async function submitReimbursement(formData: FormData) {
 // ============================================================================
 export async function getClaimForEdit(expenseId: string) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) return { success: false, message: 'Sesi habis.' };
+    const session = await getSession();
+    if (!session || !session.userId) return { success: false, message: 'Sesi habis.' };
+    const userId = session.userId;
 
     const expense = await prisma.expense.findUnique({
       where: { id: expenseId, userId: userId }, // Pastikan hanya milik teknisi ybs
@@ -208,9 +208,9 @@ export async function getClaimForEdit(expenseId: string) {
 // ============================================================================
 export async function updateReimbursement(expenseId: string, formData: FormData) {
   try {
-    const cookieStore = await cookies();
-    const userId = cookieStore.get('userId')?.value;
-    if (!userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    const session = await getSession();
+    if (!session || !session.userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
+    const userId = session.userId;
 
     // 1. Validasi Kepemilikan & Status
     const existingExpense = await prisma.expense.findUnique({

@@ -11,17 +11,17 @@ interface User {
   createdAt: Date;
 }
 
-export default function UsersTable({ 
-  users, 
-  editUserAction, 
-  resetPasswordAction, 
+export default function UsersTable({
+  users,
+  editUserAction,
+  resetPasswordAction,
   deleteUserAction,
   protectedEmails = []
-}: { 
+}: {
   users: User[];
-  editUserAction: (formData: FormData) => Promise<{success: boolean; message?: string}>;
-  resetPasswordAction: (formData: FormData) => Promise<{success: boolean; message?: string}>;
-  deleteUserAction: (formData: FormData) => Promise<{success: boolean; message?: string}>;
+  editUserAction: (formData: FormData) => Promise<{ success: boolean; message?: string }>;
+  resetPasswordAction: (formData: FormData) => Promise<{ success: boolean; message?: string }>;
+  deleteUserAction: (formData: FormData) => Promise<{ success: boolean; message?: string }>;
   protectedEmails?: string[];
 }) {
 
@@ -47,9 +47,9 @@ export default function UsersTable({
   const handleResetPassword = async (id: string) => {
     // Generate a secure random password
     const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10).toUpperCase();
-    
+
     if (!confirm(`Reset password to "${randomPassword}"?`)) return;
-    
+
     setLoading(`reset-${id}`);
     try {
       const formData = new FormData();
@@ -71,7 +71,7 @@ export default function UsersTable({
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete user "${name}"? This action cannot be undone.`)) return;
-    
+
     setLoading(`delete-${id}`);
     try {
       const formData = new FormData();
@@ -111,7 +111,7 @@ export default function UsersTable({
   return (
     <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 overflow-hidden relative backdrop-blur-sm">
       <div className="overflow-x-auto p-2">
-        <table className="w-full text-left border-collapse whitespace-nowrap">
+        <table className="w-full text-left border-collapse">
           <thead>
             <tr className="text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-700/50">
               <th className="p-4 pl-6">User</th>
@@ -147,29 +147,28 @@ export default function UsersTable({
                   </td>
                   <td className="p-4 text-right pr-6">
                     <div className="flex items-center justify-end gap-2">
-                      <button 
+                      <button
                         onClick={() => setEditingUser(u)}
                         disabled={loading !== null}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50"
                       >
                         ✏️ Edit
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleResetPassword(u.id)}
                         disabled={loading !== null}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition-all disabled:opacity-50"
                       >
                         🔑 Reset
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(u.id, u.name)}
                         disabled={loading !== null || isProtectedUser(u.email)}
                         title={isProtectedUser(u.email) ? 'Protected account cannot be deleted' : 'Delete user'}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-30 ${
-                          isProtectedUser(u.email) 
-                            ? 'bg-slate-700/30 text-slate-500 border border-slate-600/30 cursor-not-allowed' 
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-30 ${isProtectedUser(u.email)
+                            ? 'bg-slate-700/30 text-slate-500 border border-slate-600/30 cursor-not-allowed'
                             : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
-                        }`}
+                          }`}
                       >
                         {isProtectedUser(u.email) ? '🔒 Locked' : '🗑️ Delete'}
                       </button>
@@ -183,7 +182,7 @@ export default function UsersTable({
       </div>
 
       {editingUser && (
-        <EditUserModal 
+        <EditUserModal
           user={editingUser}
           onClose={() => setEditingUser(null)}
           onSubmit={handleEdit}

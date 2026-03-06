@@ -3,19 +3,18 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-import { cookies } from 'next/headers';
+import { getSession } from '@/lib/session';
 
 // Pengecekan keamanan akun yang dilindungi
 const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
 
 export async function updateMyProfile(formData: FormData) {
     try {
-        const cookieStore = await cookies();
-        const userId = cookieStore.get('userId')?.value;
-
-        if (!userId) {
+        const session = await getSession();
+        if (!session || !session.userId) {
             return { success: false, message: 'Sesi habis, silakan login kembali.' };
         }
+        const userId = session.userId;
 
         const name = formData.get('name') as string;
         const email = formData.get('email') as string;
@@ -66,12 +65,11 @@ export async function updateMyProfile(formData: FormData) {
 
 export async function updateMyPassword(formData: FormData) {
     try {
-        const cookieStore = await cookies();
-        const userId = cookieStore.get('userId')?.value;
-
-        if (!userId) {
+        const session = await getSession();
+        if (!session || !session.userId) {
             return { success: false, message: 'Sesi habis, silakan login kembali.' };
         }
+        const userId = session.userId;
 
         const currentPassword = formData.get('currentPassword') as string;
         const newPassword = formData.get('newPassword') as string;

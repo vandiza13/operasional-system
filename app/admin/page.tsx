@@ -72,7 +72,7 @@ export default async function AdminDashboard({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
           <Suspense fallback={<div className="bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700 text-sm text-slate-400">Loading...</div>}>
             <MonthFilter />
           </Suspense>

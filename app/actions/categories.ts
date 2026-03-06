@@ -2,9 +2,13 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { getSession } from '@/lib/session';
 
 export async function getAllCategories() {
   try {
+    const session = await getSession();
+    if (!session) return { success: false, message: 'Unauthorized access.' };
+
     const categories = await prisma.expenseCategory.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' }
@@ -30,6 +34,11 @@ export async function getAllCategories() {
  */
 export async function createCategory(formData: FormData) {
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+
     const name = formData.get('name') as string;
 
     if (!name || name.trim() === '') {
@@ -80,6 +89,11 @@ export async function updateCategory(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+
     // Cek duplikat (case-insensitive manual untuk MySQL/TiDB compatibility)
     const allCategories = await prisma.expenseCategory.findMany({
       where: { id: { not: id } },
@@ -121,6 +135,11 @@ export async function toggleCategoryStatus(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+
     const category = await prisma.expenseCategory.findUnique({
       where: { id }
     });
@@ -158,6 +177,11 @@ export async function deleteCategory(formData: FormData) {
   }
 
   try {
+    const session = await getSession();
+    if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
+      return { success: false, message: 'Unauthorized access.' };
+    }
+
     // Cek apakah kategori sedang digunakan
     const expensesUsingCategory = await prisma.expense.count({
       where: { categoryId: id }
