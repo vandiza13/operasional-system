@@ -59,7 +59,13 @@ export async function submitReimbursement(formData: FormData) {
     // Tambahan baru sesuai skema
     const categoryId = formData.get('categoryId') as string;
     const expenseDate = formData.get('expenseDate') as string;
-    
+
+    // Fitur Baru KM
+    const kmBeforeStr = formData.get('kmBefore') as string;
+    const kmAfterStr = formData.get('kmAfter') as string;
+    const kmBefore = kmBeforeStr ? parseInt(kmBeforeStr, 10) : null;
+    const kmAfter = kmAfterStr ? parseInt(kmAfterStr, 10) : null;
+
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return { success: false, message: 'Nominal tidak valid!' };
     if (!expenseDate || isNaN(Date.parse(expenseDate))) return { success: false, message: 'Tanggal pengeluaran tidak valid!' };
     if (!categoryId) return { success: false, message: 'Kategori wajib dipilih!' };
@@ -72,15 +78,15 @@ export async function submitReimbursement(formData: FormData) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return { success: false, message: 'User tidak ditemukan.' };
 
-    // 3. AMBIL 4 FILE WAJIB
+    // 3. AMBIL FILE
     const files = {
       RECEIPT: formData.get('receipt') as File,
-      EVIDENCE_1: formData.get('evidence1') as File,
-      EVIDENCE_2: formData.get('evidence2') as File,
-      EVIDENCE_3: formData.get('evidence3') as File,
+      EVIDENCE_1: formData.get('evidence1') as File,  // KM Sebelum
+      EVIDENCE_2: formData.get('evidence2') as File,  // KM Sesudah
     };
+    const optionalEvidence3 = formData.get('evidence3') as File | null;
 
-    // 4. VALIDASI 4 FILE WAJIB (Maks 5MB)
+    // 4. VALIDASI 3 FILE WAJIB (Maks 5MB)
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     for (const [key, file] of Object.entries(files)) {
       if (!file || file.size === 0) return { success: false, message: `File ${key} wajib diunggah!` };
@@ -88,15 +94,32 @@ export async function submitReimbursement(formData: FormData) {
       if (!file.type.startsWith('image/')) return { success: false, message: `File ${key} harus berupa gambar!` };
     }
 
+    // Validasi file opsional jika ada
+    let hasEvidence3 = false;
+    if (optionalEvidence3 && optionalEvidence3.size > 0) {
+      if (optionalEvidence3.size > MAX_FILE_SIZE) return { success: false, message: `Ukuran Eviden Tambahan terlalu besar (Maks 5MB)!` };
+      if (!optionalEvidence3.type.startsWith('image/')) return { success: false, message: `Eviden Tambahan harus berupa gambar!` };
+      hasEvidence3 = true;
+    }
+
     // 5. UPLOAD PARALEL (CEPAT & EFISIEN)
     let urls: (string | null)[] = [];
+    let evidence3Url: string | null = null;
     try {
-      urls = await Promise.all([
+      const uploadPromises = [
         uploadFile(files.RECEIPT, 'receipts'),
         uploadFile(files.EVIDENCE_1, 'evidences'),
-        uploadFile(files.EVIDENCE_2, 'evidences'),
-        uploadFile(files.EVIDENCE_3, 'evidences')
-      ]);
+        uploadFile(files.EVIDENCE_2, 'evidences')
+      ];
+
+      if (hasEvidence3) {
+        uploadPromises.push(uploadFile(optionalEvidence3 as File, 'evidences'));
+      }
+
+      const results = await Promise.all(uploadPromises);
+      urls = results.slice(0, 3);
+      if (hasEvidence3) evidence3Url = results[3];
+
     } catch (uploadError: any) {
       if (String(uploadError).includes('BLOB_READ_WRITE_TOKEN')) {
         return { success: false, message: '⚠️ Sistem belum dikonfigurasi. Hubungi admin (BLOB Token).' };
@@ -104,32 +127,41 @@ export async function submitReimbursement(formData: FormData) {
       return { success: false, message: `Gagal upload file: ${String(uploadError)}` };
     }
 
-    if (urls.some(url => url === null)) return { success: false, message: 'Ada gambar yang gagal diunggah.' };
+    if (urls.some(url => url === null) || (hasEvidence3 && evidence3Url === null)) {
+      return { success: false, message: 'Ada gambar yang gagal diunggah.' };
+    }
 
     // 6. INSERT KE DATABASE (TiDB Safe - Nested Write)
     // Sekarang menggunakan tabel Expense dan ExpenseAttachment
+    const attachmentsToCreate = [
+      { type: 'RECEIPT', fileUrl: urls[0] as string },
+      { type: 'EVIDENCE_1', fileUrl: urls[1] as string },
+      { type: 'EVIDENCE_2', fileUrl: urls[2] as string },
+    ];
+
+    if (hasEvidence3 && evidence3Url) {
+      attachmentsToCreate.push({ type: 'EVIDENCE_3', fileUrl: evidence3Url });
+    }
+
     await prisma.expense.create({
       data: {
         userId: userId,
         categoryId: categoryId,
         amount: parseFloat(amount),
         description: description,
+        kmBefore: kmBefore,
+        kmAfter: kmAfter,
         expenseDate: new Date(expenseDate),
         status: 'PENDING',
         attachments: {
-          create: [
-            { type: 'RECEIPT', fileUrl: urls[0] as string },
-            { type: 'EVIDENCE_1', fileUrl: urls[1] as string },
-            { type: 'EVIDENCE_2', fileUrl: urls[2] as string },
-            { type: 'EVIDENCE_3', fileUrl: urls[3] as string },
-          ]
+          create: attachmentsToCreate as any
         }
       }
     });
 
     revalidatePath('/submit');
     revalidatePath('/admin');
-    return { success: true, message: 'Laporan dan 4 bukti berhasil masuk antrian!' };
+    return { success: true, message: 'Laporan dan bukti berhasil masuk antrian!' };
 
   } catch (error) {
     console.error('Submit Error:', error);

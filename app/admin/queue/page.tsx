@@ -9,7 +9,7 @@ export default async function QueuePage() {
   // 1. Ambil data bon (HANYA YANG APPROVED, SEMUA BULAN)
   const approvedQueue = await prisma.expense.findMany({
     where: { status: 'APPROVED' },
-    orderBy: { approvedAt: 'asc' }, 
+    orderBy: { approvedAt: 'asc' },
     include: { user: true, attachments: true },
   });
 
@@ -23,6 +23,8 @@ export default async function QueuePage() {
       acc[techId] = {
         technicianId: techId,
         technicianName: curr.user?.name || 'Anonim',
+        technicianNik: curr.user?.nik || '-',
+        technicianPhone: curr.user?.phone || '-',
         totalAmount: 0,
         expenses: [] // Menyimpan rincian bon untuk akordion
       };
@@ -30,7 +32,7 @@ export default async function QueuePage() {
     acc[techId].totalAmount += Number(curr.amount);
     acc[techId].expenses.push(curr);
     return acc;
-  }, {} as Record<string, { technicianId: string, technicianName: string, totalAmount: number, expenses: any[] }>);
+  }, {} as Record<string, { technicianId: string, technicianName: string, technicianNik: string, technicianPhone: string, totalAmount: number, expenses: any[] }>);
 
   // Ubah objek hasil group menjadi array agar bisa di-map di HTML
   const payoutsArray = Object.values(groupedPayouts);
@@ -39,7 +41,7 @@ export default async function QueuePage() {
 
   return (
     <div className="space-y-6">
-      
+
       {/* HEADER PAGE */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
@@ -50,11 +52,11 @@ export default async function QueuePage() {
             Konsolidasi otomatis. Satu kali klik untuk melunasi semua bon milik teknisi.
           </p>
         </div>
-        
+
         <div className="flex flex-col items-end gap-2">
           {/* INDIKATOR SALDO KAS */}
           <div className="bg-slate-800/80 text-slate-300 px-4 py-2 rounded-xl text-sm font-bold border border-slate-700 shadow-sm flex items-center gap-2">
-            Saldo Kas Operasional: 
+            Saldo Kas Operasional:
             <span className={currentBalance > 0 ? 'text-emerald-400' : 'text-red-400'}>
               {formatRupiah(currentBalance)}
             </span>
@@ -73,7 +75,7 @@ export default async function QueuePage() {
       {/* TABEL ANTREAN KONSOLIDASI */}
       <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 overflow-hidden relative backdrop-blur-sm">
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-400 to-indigo-600"></div>
-        
+
         <div className="overflow-x-auto p-2">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
@@ -107,6 +109,21 @@ export default async function QueuePage() {
                       </td>
                       <td className="p-4">
                         <p className="font-extrabold text-white text-base">{item.technicianName}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center gap-1 flex-wrap">
+                          NIK: {item.technicianNik} •
+                          {item.technicianPhone && item.technicianPhone !== '-' ? (
+                            <a
+                              href={`https://wa.me/${item.technicianPhone.replace(/^0/, '62').replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-emerald-400 transition-colors flex items-center gap-1.5 group"
+                              title="Chat via WhatsApp"
+                            >
+                              <svg className="w-3.5 h-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766 0 1.011.263 1.996.763 2.864l-1.041 3.841 3.916-1.033c.84.456 1.785.698 2.744.701h.004c3.18 0 5.766-2.585 5.768-5.766-.002-3.18-2.588-5.766-5.766-5.766l-.02-.007zm3.328 8.169c-.183.52-.942 1.011-1.328 1.127-.336.1-.735.15-2.071-.412-1.748-.733-2.912-2.316-2.992-2.428-.08-.112-.705-.968-.705-1.85 0-.882.441-1.314.593-1.482.152-.168.336-.211.448-.211.112 0 .224 0 .32.005.105.006.248-.04.384.295.144.352.488 1.226.528 1.315.04.089.064.192.008.305-.056.113-.088.185-.168.281-.08.096-.168.216-.24.296-.08.089-.168.185-.064.361.104.177.464.78.992 1.25.688.608 1.256.793 1.432.889.176.095.28.08.384-.04.104-.12.448-.52.568-.705.12-.176.24-.144.4-.08.16.056 1.008.48 1.184.568.168.088.28.144.32.224.04.08.04.464-.144.984z" /></svg>
+                              <span className="group-hover:underline">{item.technicianPhone}</span>
+                            </a>
+                          ) : 'WA: -'}
+                        </p>
                         <p className="text-xs text-slate-400 font-medium mt-1">
                           Menunggu <span className="text-blue-400 font-bold">{item.expenses.length} Bon</span> dicairkan
                         </p>
@@ -134,12 +151,12 @@ export default async function QueuePage() {
                       </td>
                       <td className="p-4 pr-6 md:pr-8">
                         {/* TOMBOL PENCAIRAN (CLIENT COMPONENT) */}
-                        <PayoutForm 
-                          technicianId={item.technicianId} 
+                        <PayoutForm
+                          technicianId={item.technicianId}
                           formattedAmount={formatRupiah(item.totalAmount)}
                           isDisabled={!isBalanceSufficient}
                         />
-                        
+
                         {/* PESAN ERROR JIKA SALDO KURANG */}
                         {!isBalanceSufficient && (
                           <p className="text-[10px] text-red-400 font-bold mt-2 text-center animate-pulse">

@@ -9,11 +9,11 @@ interface User {
   role: string;
 }
 
-export default function EditUserModal({ 
-  user, 
-  onClose, 
-  onSubmit 
-}: { 
+export default function EditUserModal({
+  user,
+  onClose,
+  onSubmit
+}: {
   user: User;
   onClose: () => void;
   onSubmit: (formData: FormData) => void;
@@ -34,20 +34,20 @@ export default function EditUserModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md overflow-hidden">
+      <div className="bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex-shrink-0">
           <h3 className="text-lg font-black text-white flex items-center gap-2">
             ✏️ Edit User
           </h3>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto custom-scrollbar">
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-400 ml-1">Full Name</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -57,8 +57,8 @@ export default function EditUserModal({
 
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-400 ml-1">Email Address</label>
-            <input 
-              type="email" 
+            <input
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -68,7 +68,7 @@ export default function EditUserModal({
 
           <div className="space-y-1">
             <label className="block text-xs font-bold text-slate-400 ml-1">Role</label>
-            <select 
+            <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
               required
@@ -81,14 +81,14 @@ export default function EditUserModal({
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button 
+            <button
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-3 bg-slate-700/50 text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-700 transition-all"
             >
               Cancel
             </button>
-            <button 
+            <button
               type="submit"
               className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl text-sm font-bold hover:from-indigo-500 hover:to-purple-500 transition-all"
             >

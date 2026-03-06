@@ -37,20 +37,18 @@ export async function createCategory(formData: FormData) {
     }
 
     const trimmedName = name.trim();
-    console.log('Creating category with name:', trimmedName);
 
     // Cek duplikat (case-insensitive manual untuk MySQL/TiDB compatibility)
     const allCategories = await prisma.expenseCategory.findMany({
       select: { id: true, name: true }
     });
-    
-    const existing = allCategories.find(cat => 
+
+    const existing = allCategories.find(cat =>
       cat.name.toLowerCase() === trimmedName.toLowerCase()
     );
 
 
     if (existing) {
-      console.log('Duplicate category found:', existing);
       return { success: false, message: 'Kategori dengan nama tersebut sudah ada!' };
     }
 
@@ -58,11 +56,9 @@ export async function createCategory(formData: FormData) {
       data: { name: trimmedName }
     });
 
-    console.log('Category created successfully:', newCategory);
-
     revalidatePath('/admin/categories');
     revalidatePath('/submit');
-    
+
     return { success: true, message: 'Kategori berhasil ditambahkan!' };
   } catch (error) {
     console.error('Error creating category:', error);
@@ -89,8 +85,8 @@ export async function updateCategory(formData: FormData) {
       where: { id: { not: id } },
       select: { id: true, name: true }
     });
-    
-    const existing = allCategories.find(cat => 
+
+    const existing = allCategories.find(cat =>
       cat.name.toLowerCase() === name.trim().toLowerCase()
     );
 
@@ -106,7 +102,7 @@ export async function updateCategory(formData: FormData) {
 
     revalidatePath('/admin/categories');
     revalidatePath('/submit');
-    
+
     return { success: true, message: 'Kategori berhasil diupdate!' };
   } catch (error) {
     console.error('Error updating category:', error);
@@ -140,10 +136,10 @@ export async function toggleCategoryStatus(formData: FormData) {
 
     revalidatePath('/admin/categories');
     revalidatePath('/submit');
-    
-    return { 
-      success: true, 
-      message: `Kategori ${category.isActive ? 'dinonaktifkan' : 'diaktifkan'}!` 
+
+    return {
+      success: true,
+      message: `Kategori ${category.isActive ? 'dinonaktifkan' : 'diaktifkan'}!`
     };
   } catch (error) {
     console.error('Error toggling category:', error);
@@ -168,9 +164,9 @@ export async function deleteCategory(formData: FormData) {
     });
 
     if (expensesUsingCategory > 0) {
-      return { 
-        success: false, 
-        message: `Kategori tidak bisa dihapus karena sedang digunakan oleh ${expensesUsingCategory} laporan!` 
+      return {
+        success: false,
+        message: `Kategori tidak bisa dihapus karena sedang digunakan oleh ${expensesUsingCategory} laporan!`
       };
     }
 
@@ -180,7 +176,7 @@ export async function deleteCategory(formData: FormData) {
 
     revalidatePath('/admin/categories');
     revalidatePath('/submit');
-    
+
     return { success: true, message: 'Kategori berhasil dihapus!' };
   } catch (error) {
     console.error('Error deleting category:', error);

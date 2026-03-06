@@ -6,6 +6,7 @@ import { getTechnicianStats, getTechnicianClaims, ClaimHistory } from '@/app/act
 import { getCurrentUser } from '@/app/actions/user';
 import { getAllCategories } from '@/app/actions/categories';
 import LogoutButton from '@/app/components/LogoutButton';
+import Link from 'next/link';
 
 
 type Category = { id: string, name: string };
@@ -18,7 +19,7 @@ export default function SubmitPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  
+
   // [BARU] State Navigasi Tab (form, stats, atau history)
   const [activeTab, setActiveTab] = useState<'form' | 'stats' | 'history'>('form');
 
@@ -30,12 +31,12 @@ export default function SubmitPage() {
   const [stats, setStats] = useState({ pending: 0, approved: 0, paid: 0, queuePosition: 0 });
   const [profile, setProfile] = useState<UserProfile>({ name: "Memuat...", nik: "-", position: "-", phone: "-" });
   const [categories, setCategories] = useState<Category[]>([]);
-  
+
   // [BARU] State untuk Riwayat Klaim
   const [claims, setClaims] = useState<ClaimHistory[]>([]);
   const [claimsLoading, setClaimsLoading] = useState(false);
 
-  
+
   // State tracking file
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [evidenceFiles, setEvidenceFiles] = useState<(File | null)[]>([null, null, null]);
@@ -75,14 +76,14 @@ export default function SubmitPage() {
     formData.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
     formData.append('categoryId', (form.elements.namedItem('categoryId') as HTMLSelectElement).value);
     formData.append('expenseDate', (form.elements.namedItem('expenseDate') as HTMLInputElement).value);
-    
+
     if (compressedReceipt) formData.append('receipt', compressedReceipt);
     if (compressedEvidence[0]) formData.append('evidence1', compressedEvidence[0]);
     if (compressedEvidence[1]) formData.append('evidence2', compressedEvidence[1]);
     if (compressedEvidence[2]) formData.append('evidence3', compressedEvidence[2]);
-    
+
     const result = await submitReimbursement(formData);
-    
+
     setMessage(result.message);
     setLoading(false);
 
@@ -92,7 +93,7 @@ export default function SubmitPage() {
       setEvidenceFiles([null, null, null]);
       setCompressedReceipt(null);
       setCompressedEvidence([null, null, null]);
-      
+
       // Berpindah otomatis ke tab statistik setelah sukses submit
       setActiveTab('stats');
       getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
@@ -113,17 +114,17 @@ export default function SubmitPage() {
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          
+
           if (width > maxWidth) {
             height = Math.round((height * maxWidth) / width);
             width = maxWidth;
           }
-          
+
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          
+
           canvas.toBlob((blob) => {
             if (blob) resolve(new File([blob], file.name, { type: 'image/jpeg', lastModified: Date.now() }));
             else reject(new Error('Compression failed'));
@@ -139,7 +140,7 @@ export default function SubmitPage() {
     const file = e.target.files?.[0] || null;
     setReceiptFile(file);
     if (file) {
-      try { setCompressedReceipt(await compressImage(file)); } 
+      try { setCompressedReceipt(await compressImage(file)); }
       catch { setCompressedReceipt(file); }
     } else setCompressedReceipt(null);
   };
@@ -149,7 +150,7 @@ export default function SubmitPage() {
     const newFiles = [...evidenceFiles];
     newFiles[index] = file;
     setEvidenceFiles(newFiles);
-    
+
     if (file) {
       try {
         const compressed = await compressImage(file);
@@ -158,7 +159,7 @@ export default function SubmitPage() {
         setCompressedEvidence(newCompressed);
       } catch {
         const newCompressed = [...compressedEvidence];
-        newCompressed[index] = file; 
+        newCompressed[index] = file;
         setCompressedEvidence(newCompressed);
       }
     } else {
@@ -174,7 +175,7 @@ export default function SubmitPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200 pb-12">
-      
+
       {/* HEADER */}
       <header className="bg-slate-950 sticky top-0 z-20 border-b border-slate-800/60 shadow-lg px-5 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
@@ -188,12 +189,19 @@ export default function SubmitPage() {
             <p className="text-[10px] uppercase font-bold text-slate-500 mt-0.5">Sistem Operasional</p>
           </div>
         </div>
-        <LogoutButton />
+        <div className="flex items-center gap-3">
+          <Link href="/profile">
+            <button className="flex items-center justify-center p-2.5 bg-slate-800 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 rounded-xl transition-all border border-slate-700/50 hover:border-indigo-500/30 shadow-sm" title="Profil Saya">
+              <span className="text-lg leading-none">👤</span>
+            </button>
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       <main className="flex-1 px-4 sm:px-6 py-6 md:py-8 flex justify-center w-full">
         <div className="w-full max-w-lg space-y-6">
-          
+
           {/* KARTU PROFIL TEKNISI */}
           <div className="bg-slate-800/50 rounded-[2rem] p-6 shadow-lg border border-slate-700/50 relative overflow-hidden backdrop-blur-sm">
             <div className="absolute -top-16 -right-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
@@ -282,8 +290,19 @@ export default function SubmitPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label htmlFor="description" className="block text-sm font-bold text-slate-400 ml-1">Keterangan Pekerjaan</label>
-                  <textarea id="description" name="description" required rows={2} placeholder="Contoh: Beli bensin untuk proyek A..." className="w-full px-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all resize-none placeholder:text-slate-600 placeholder:font-normal"></textarea>
+                  <label htmlFor="description" className="block text-sm font-bold text-slate-400 ml-1">Deskripsi Pekerjaan / Nomer Tiket</label>
+                  <textarea id="description" name="description" required rows={2} placeholder="Contoh: Beli bensin untuk tiket #12345..." className="w-full px-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all resize-none placeholder:text-slate-600 placeholder:font-normal"></textarea>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label htmlFor="kmBefore" className="block text-sm font-bold text-slate-400 ml-1">KM Sebelum</label>
+                    <input type="number" id="kmBefore" name="kmBefore" min="0" placeholder="0" className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white font-black text-lg outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="kmAfter" className="block text-sm font-bold text-slate-400 ml-1">KM Sesudah</label>
+                    <input type="number" id="kmAfter" name="kmAfter" min="0" placeholder="0" className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white font-black text-lg outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
+                  </div>
                 </div>
 
                 <div className="w-full h-px bg-slate-700/50 my-4"></div>
@@ -300,16 +319,20 @@ export default function SubmitPage() {
                 </div>
 
                 <div className="pt-2">
-                  <label className="block text-sm font-bold text-white ml-1 mb-2">2. Foto Bukti Lapangan <span className="text-rose-500 text-xs font-normal ml-1">(Wajib 3 Foto)</span></label>
+                  <label className="block text-sm font-bold text-white ml-1 mb-2">2. Foto Bukti Lapangan <span className="text-rose-500 text-xs font-normal ml-1">(2 Wajib, 1 Opsional)</span></label>
                   <div className="grid grid-cols-3 gap-3 sm:gap-4">
-                    {[1, 2, 3].map((num) => (
-                      <div key={num} className={`relative border-2 border-dashed rounded-2xl p-3 flex flex-col items-center justify-center text-center cursor-pointer h-28 group transition-all ${evidenceFiles[num-1] ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 hover:border-indigo-500/50 bg-slate-900 hover:bg-indigo-500/5'}`}>
-                        <input type="file" id={`evidence${num}`} name={`evidence${num}`} accept="image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleEvidenceChange(e, num-1)} />
-                        <span className={`text-2xl mb-2 transition-all duration-300 ${evidenceFiles[num-1] ? '' : 'grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-100'}`}>
-                          {evidenceFiles[num-1] ? '✅' : '📸'}
+                    {[
+                      { id: 1, label: 'KM Sebelum', req: true },
+                      { id: 2, label: 'KM Sesudah', req: true },
+                      { id: 3, label: 'Eviden Tmbh', req: false }
+                    ].map((item) => (
+                      <div key={item.id} className={`relative border-2 ${item.req ? 'border-dashed' : 'border-dotted'} rounded-2xl p-3 flex flex-col items-center justify-center text-center cursor-pointer h-28 group transition-all ${evidenceFiles[item.id - 1] ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 hover:border-indigo-500/50 bg-slate-900 hover:bg-indigo-500/5'}`}>
+                        <input type="file" id={`evidence${item.id}`} name={`evidence${item.id}`} accept="image/*" required={item.req} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleEvidenceChange(e, item.id - 1)} />
+                        <span className={`text-2xl mb-2 transition-all duration-300 ${evidenceFiles[item.id - 1] ? '' : 'grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-100'}`}>
+                          {evidenceFiles[item.id - 1] ? '✅' : (item.id === 3 ? '➕' : '📸')}
                         </span>
-                        <p className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${evidenceFiles[num-1] ? 'text-emerald-400' : 'text-slate-500 group-hover:text-indigo-400'}`}>
-                          {evidenceFiles[num-1] ? 'Terpilih' : `Bukti ${num}`}
+                        <p className={`text-[9px] font-bold uppercase tracking-wider transition-colors leading-tight ${evidenceFiles[item.id - 1] ? 'text-emerald-400' : 'text-slate-500 group-hover:text-indigo-400'}`}>
+                          {evidenceFiles[item.id - 1] ? 'Terpilih' : item.label}
                         </p>
                       </div>
                     ))}
@@ -331,11 +354,11 @@ export default function SubmitPage() {
           {/* ---------------------------------------------------- */}
           {activeTab === 'stats' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
-              
+
               {/* HEADER STATS & INPUT FILTER BULAN (DESAIN PREMIUM) */}
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-xl font-black text-white tracking-tight">Data Laporan</h3>
-                
+
                 <div className="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden">
                   <span className="text-sm group-hover:scale-110 transition-transform">📅</span>
                   <div className="text-xs text-white font-bold flex items-center tracking-wide">
@@ -387,11 +410,11 @@ export default function SubmitPage() {
           {/* ---------------------------------------------------- */}
           {activeTab === 'history' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-5">
-              
+
               {/* HEADER RIWAYAT & FILTER BULAN */}
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-xl font-black text-white tracking-tight">Riwayat Klaim</h3>
-                
+
                 <div className="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden">
                   <span className="text-sm group-hover:scale-110 transition-transform">📅</span>
                   <div className="text-xs text-white font-bold flex items-center tracking-wide">
@@ -436,23 +459,20 @@ export default function SubmitPage() {
                     const status = statusConfig[claim.status as keyof typeof statusConfig] || statusConfig.PENDING;
 
                     return (
-                      <div 
-                        key={claim.id} 
-                        className={`bg-slate-800/50 rounded-2xl border shadow-sm backdrop-blur-sm overflow-hidden ${
-                          claim.status === 'REJECTED' ? 'border-rose-500/30' : 'border-slate-700/50'
-                        }`}
+                      <div
+                        key={claim.id}
+                        className={`bg-slate-800/50 rounded-2xl border shadow-sm backdrop-blur-sm overflow-hidden ${claim.status === 'REJECTED' ? 'border-rose-500/30' : 'border-slate-700/50'
+                          }`}
                       >
                         {/* Header Card */}
-                        <div className={`px-4 py-3 border-b flex items-center justify-between ${
-                          claim.status === 'REJECTED' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-900/30 border-slate-700/30'
-                        }`}>
+                        <div className={`px-4 py-3 border-b flex items-center justify-between ${claim.status === 'REJECTED' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-900/30 border-slate-700/30'
+                          }`}>
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${
-                              claim.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                            <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${claim.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                               claim.status === 'APPROVED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                              claim.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                              'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                            }`}>
+                                claim.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                  'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                              }`}>
                               {status.icon} {status.label}
                             </span>
                           </div>
@@ -500,7 +520,7 @@ export default function SubmitPage() {
           <div className="text-center mt-8 pb-8">
             <p className="text-xs text-slate-500 font-medium">Sistem Operasional Internal © 2026</p>
           </div>
-          
+
         </div>
       </main>
     </div>

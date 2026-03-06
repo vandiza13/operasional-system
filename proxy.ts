@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // 1. Cegat tamu tak diundang (Belum login)
-  if (!userId && (path.startsWith('/submit') || path.startsWith('/admin'))) {
+  if (!userId && (path.startsWith('/submit') || path.startsWith('/admin') || path.startsWith('/profile'))) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
@@ -37,5 +37,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Memantau rute-rute yang perlu dilindungi
-  matcher: ['/submit/:path*', '/admin/:path*', '/login', '/reset/:path*'],
+  matcher: ['/submit/:path*', '/admin/:path*', '/login', '/reset/:path*', '/profile/:path*'],
 };

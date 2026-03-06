@@ -81,6 +81,8 @@ model Expense {
   expenseDate      DateTime
   amount           Decimal             @db.Decimal(12, 2)
   description      String?             @db.Text
+  kmBefore         Int?
+  kmAfter          Int?
 
   status           ExpenseStatus       @default(PENDING)
 
