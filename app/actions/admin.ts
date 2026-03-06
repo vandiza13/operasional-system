@@ -15,10 +15,11 @@ import { ExpenseStatus, TransactionType } from '@prisma/client';
 export async function approveReimbursement(formData: FormData) {
   const id = formData.get('id') as string;
   const newAmount = formData.get('amount') as string;
-  
+
   try {
     const cookieStore = await cookies();
     const adminId = cookieStore.get('userId')?.value;
+    if (!adminId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
 
     await prisma.expense.update({
       where: { id },
@@ -40,7 +41,7 @@ export async function approveReimbursement(formData: FormData) {
 export async function rejectReimbursement(formData: FormData) {
   const id = formData.get('id') as string;
   const reason = formData.get('reason') as string;
-  
+
   try {
     const expense = await prisma.expense.findUnique({ where: { id } });
     if (!expense) {
@@ -48,7 +49,7 @@ export async function rejectReimbursement(formData: FormData) {
     }
 
     const currentDesc = expense.description || '';
-    const newDescription = reason 
+    const newDescription = reason
       ? `${currentDesc}\n\nREJECTED: ${reason}`.trim()
       : currentDesc;
 
@@ -86,7 +87,7 @@ export async function getCurrentBalance() {
 export async function topUpLedger(formData: FormData) {
   const amountStr = formData.get('amount') as string;
   const description = formData.get('description') as string;
-  
+
   try {
     const amount = parseFloat(amountStr);
     if (!amount || amount <= 0) return { success: false, message: 'Nominal tidak valid!' };
@@ -127,18 +128,18 @@ export async function topUpLedger(formData: FormData) {
 
 export async function payoutTechnician(formData: FormData) {
   const technicianId = formData.get('technicianId') as string;
-  
+
   try {
     const cookieStore = await cookies();
     const adminId = cookieStore.get('userId')?.value;
     if (!adminId) return { success: false, message: 'Sesi admin tidak ditemukan.' };
 
     // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
-    const adminUser = await prisma.user.findUnique({ 
+    const adminUser = await prisma.user.findUnique({
       where: { id: adminId },
       select: { id: true } // Kita hanya butuh ID-nya untuk memastikan eksistensi
     });
-    
+
     if (!adminUser) {
       return { success: false, message: 'Akun Admin tidak valid/dihapus. Mohon logout dan login ulang.' };
     }
@@ -244,7 +245,7 @@ export async function createTechnician(formData: FormData) {
       }
     });
 
-    revalidatePath('/admin/technicians'); 
+    revalidatePath('/admin/technicians');
     return { success: true, message: `Technician ${name} account created successfully` };
   } catch (error) {
     console.error('Failed to create technician:', error);

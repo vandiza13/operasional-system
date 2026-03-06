@@ -46,24 +46,32 @@ export async function completeDeleteAllData() {
   try {
     // Hapus expense attachments terlebih dahulu
     const attachmentCount = await prisma.expenseAttachment.deleteMany({});
-    
+
+    // Hapus ledger SEBELUM payoutBatch (karena ledger punya FK ke payoutBatch)
+    const ledgerCount = await prisma.operationalLedger.deleteMany({});
+
+    // Hapus payoutBatch SEBELUM expense & user (FK ke keduanya)
+    const payoutCount = await prisma.payoutBatch.deleteMany({});
+
     // Hapus expenses
     const expenseCount = await prisma.expense.deleteMany({});
-    
+
     // Hapus expense categories
     const categoryCount = await prisma.expenseCategory.deleteMany({});
-    
+
     // Hapus semua users
     const userCount = await prisma.user.deleteMany({});
 
     return {
       success: true,
-      message: `✅ Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}`,
+      message: `✅ Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}\nHapus ledger: ${ledgerCount.count}\nHapus payout: ${payoutCount.count}`,
       deletedRecords: {
         users: userCount.count,
         expenses: expenseCount.count,
         attachments: attachmentCount.count,
-        categories: categoryCount.count
+        categories: categoryCount.count,
+        ledgers: ledgerCount.count,
+        payouts: payoutCount.count
       }
     };
   } catch (error) {

@@ -2,7 +2,8 @@ import prisma from '@/lib/prisma';
 import { approveReimbursement, rejectReimbursement } from '@/app/actions/admin';
 import { revalidatePath } from 'next/cache';
 import ApprovalTable from '@/app/components/ApprovalTable';
-import Pagination from '@/app/components/Pagination'; // [BARU] Import Pagination
+import Pagination from '@/app/components/Pagination';
+import { Suspense } from 'react';
 
 // WAJIB: Agar Next.js selalu menarik data terbaru
 export const dynamic = 'force-dynamic';
@@ -54,7 +55,7 @@ export default async function ApprovalPage({
 
   return (
     <div className="space-y-6">
-      
+
       {/* HEADER PAGE */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
@@ -75,15 +76,17 @@ export default async function ApprovalPage({
       </div>
 
       {/* TABEL DATA */}
-      <ApprovalTable 
+      <ApprovalTable
         expenses={pendingList}
         approveAction={handleApprove}
         rejectAction={handleReject}
       />
 
-      {/* KONTROL PAGINATION [BARU] */}
-      <Pagination totalPages={totalPages} />
-      
+      {/* KONTROL PAGINATION */}
+      <Suspense fallback={null}>
+        <Pagination totalPages={totalPages} />
+      </Suspense>
+
     </div>
   );
 }

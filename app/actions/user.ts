@@ -68,6 +68,12 @@ export async function resetAndReseedUsers() {
       };
     }
 
+    // Delete all related data first (respect FK constraints)
+    await prisma.expenseAttachment.deleteMany({});
+    await prisma.operationalLedger.deleteMany({});
+    await prisma.payoutBatch.deleteMany({});
+    await prisma.expense.deleteMany({});
+    await prisma.expenseCategory.deleteMany({});
     // Delete all users
     await prisma.user.deleteMany({});
 
@@ -85,7 +91,7 @@ export async function resetAndReseedUsers() {
         role: 'SUPER_ADMIN' as any
       }
     });
-    
+
     // Create Admin
     await prisma.user.create({
       data: {
@@ -95,7 +101,7 @@ export async function resetAndReseedUsers() {
         role: 'ADMIN' as any
       }
     });
-    
+
     // Create Technician with additional fields
     await prisma.user.create({
       data: {
@@ -250,9 +256,9 @@ export async function deleteUser(formData: FormData) {
 
     // Check if this is a protected account
     if (PROTECTED_EMAILS.includes(user.email)) {
-      return { 
-        success: false, 
-        message: `Cannot delete protected account: ${user.email}. This account is locked for system security.` 
+      return {
+        success: false,
+        message: `Cannot delete protected account: ${user.email}. This account is locked for system security.`
       };
     }
 
@@ -264,9 +270,9 @@ export async function deleteUser(formData: FormData) {
 
 
     if (expensesCount > 0) {
-      return { 
-        success: false, 
-        message: `Cannot delete user. User has ${expensesCount} expense reports. Please reassign or delete these reports first.` 
+      return {
+        success: false,
+        message: `Cannot delete user. User has ${expensesCount} expense reports. Please reassign or delete these reports first.`
       };
     }
 

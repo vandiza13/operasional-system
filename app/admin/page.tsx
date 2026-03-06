@@ -3,6 +3,7 @@ import Link from 'next/link';
 import TopUpModal from './TopUpModal';
 import MonthFilter from './MonthFilter';
 import ExportButton from './ExportButton';
+import { Suspense } from 'react';
 
 // WAJIB: Agar Next.js selalu menarik data terbaru (tidak di-cache)
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export default async function AdminDashboard({
   // 1. TENTUKAN RENTANG TANGGAL (START & END DATE) BERDASARKAN FILTER
   const resolvedParams = await searchParams;
   const monthParam = resolvedParams?.month;
-  
+
   // 🔥 Dapatkan Waktu Server Saat Ini secara Spesifik di WIB
   const nowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
   const currentDateWIB = new Date(nowStr);
@@ -39,9 +40,9 @@ export default async function AdminDashboard({
 
   // 2. QUERY METRIK (DIFILTER BERDASARKAN BULAN) & SALDO KAS (ALL TIME)
   const [
-    sumPending, sumApproved, sumPaid, 
+    sumPending, sumApproved, sumPaid,
     countPending, countQueue, countTechs,
-    lastLedger 
+    lastLedger
   ] = await Promise.all([
     prisma.expense.aggregate({ _sum: { amount: true }, where: { status: 'PENDING', ...dateFilter } }),
     prisma.expense.aggregate({ _sum: { amount: true }, where: { status: 'APPROVED', ...dateFilter } }),
@@ -61,7 +62,7 @@ export default async function AdminDashboard({
 
   return (
     <div className="space-y-6">
-      
+
       {/* HEADER PAGE DENGAN FILTER */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -70,10 +71,14 @@ export default async function AdminDashboard({
             Data statistik laporan untuk periode <span className="text-white font-bold">{monthName}</span>
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <MonthFilter />
-          <ExportButton />
+          <Suspense fallback={<div className="bg-slate-800/80 px-4 py-2.5 rounded-xl border border-slate-700 text-sm text-slate-400">Loading...</div>}>
+            <MonthFilter />
+          </Suspense>
+          <Suspense fallback={<div className="bg-emerald-600/50 px-4 py-2.5 rounded-xl text-sm text-white/50">Loading...</div>}>
+            <ExportButton />
+          </Suspense>
           <TopUpModal />
         </div>
       </div>
@@ -90,7 +95,7 @@ export default async function AdminDashboard({
               {formatRupiah(currentBalance)}
             </p>
           </div>
-          
+
           <div className="bg-slate-950/40 px-5 py-3 rounded-2xl border border-slate-700/50 backdrop-blur-sm">
             <p className="text-xs text-slate-400 font-bold uppercase mb-1">Status Keuangan</p>
             {currentBalance >= Number(sumApproved._sum.amount || 0) ? (
@@ -108,7 +113,7 @@ export default async function AdminDashboard({
 
       {/* 3 KARTU RUPIAH UTAMA (DARK MODE) - DIFILTER BERDASARKAN BULAN */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        
+
         {/* KARTU PENDING */}
         <div className="bg-slate-800/50 p-6 rounded-3xl shadow-lg border border-amber-500/20 relative overflow-hidden group backdrop-blur-sm">
           <div className="absolute -top-4 -right-4 bg-amber-500/10 w-24 h-24 rounded-full transition-transform group-hover:scale-150 duration-500"></div>
@@ -120,7 +125,7 @@ export default async function AdminDashboard({
             <p className="text-xs text-slate-400 font-medium mt-1">Ada {countPending} laporan baru di bulan ini</p>
           </div>
         </div>
-        
+
         {/* KARTU ANTREAN (APPROVED) */}
         <div className="bg-slate-800/50 p-6 rounded-3xl shadow-lg border border-blue-500/20 relative overflow-hidden group backdrop-blur-sm">
           <div className="absolute -top-4 -right-4 bg-blue-500/10 w-24 h-24 rounded-full transition-transform group-hover:scale-150 duration-500"></div>

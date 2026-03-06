@@ -27,9 +27,9 @@ export async function loginUser(formData: FormData) {
 
     // Store session in cookies
     const cookieStore = await cookies();
-    cookieStore.set('userId', user.id, { httpOnly: true, path: '/' });
-    cookieStore.set('userName', user.name, { httpOnly: true, path: '/' });
-    cookieStore.set('userRole', user.role, { httpOnly: true, path: '/' });
+    cookieStore.set('userId', user.id, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+    cookieStore.set('userName', user.name, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+    cookieStore.set('userRole', user.role, { httpOnly: true, path: '/', secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
 
     return { success: true, role: user.role, message: 'Login berhasil!' };
 

@@ -7,18 +7,20 @@ import { useRouter } from 'next/navigation';
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (formData: FormData) => {
     setLoading(true);
     setMessage('');
-    
+
     const result = await loginUser(formData);
-    
+
     if (result.success) {
+      setLoginSuccess(true);
       // Pintu Masuk Disesuaikan: Admin & Super Admin masuk ke portal yang sama
       if (result.role === 'SUPER_ADMIN' || result.role === 'ADMIN') {
-        router.push('/admin'); 
+        router.push('/admin');
       } else {
         router.push('/submit'); // Teknisi masuk ke form
       }
@@ -31,13 +33,29 @@ export default function LoginPage() {
   return (
     // DARK THEME BACKGROUND
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 sm:p-6 font-sans selection:bg-indigo-500/30 selection:text-indigo-200 relative overflow-hidden">
-      
+
+      {/* FULL SCREEN LOADING OVERLAY */}
+      {(loading || loginSuccess) && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 transition-all duration-300">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-indigo-500/20 rounded-full"></div>
+            <div className="w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin absolute top-0 left-0"></div>
+          </div>
+          <p className="text-white font-bold text-lg tracking-wider">
+            {loginSuccess ? 'Login Berhasil!' : 'Memverifikasi Akses...'}
+          </p>
+          <p className="text-indigo-400 text-sm font-medium animate-pulse">
+            {loginSuccess ? 'Mengarahkan ke Dashboard...' : 'Mohon tunggu sebentar'}
+          </p>
+        </div>
+      )}
+
       {/* Background Ornaments */}
       <div className="absolute top-1/4 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] pointer-events-none"></div>
 
       <div className="w-full max-w-md bg-slate-900/80 rounded-[2.5rem] shadow-2xl border border-slate-800 p-6 sm:p-10 relative overflow-hidden backdrop-blur-xl z-10">
-        
+
         {/* Dekorasi Latar Belakang Geometris Dalam Kotak */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
 
@@ -57,31 +75,32 @@ export default function LoginPage() {
         )}
 
         <form action={handleLogin} className="space-y-5 relative z-10">
-          
+
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-400 ml-1 uppercase tracking-widest">Email Karyawan</label>
-            <input 
+            <input
               type="email" name="email" required placeholder="email@perusahaan.com"
-              className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner"
+              disabled={loading || loginSuccess}
+              className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-400 ml-1 uppercase tracking-widest">Password</label>
-            <input 
+            <input
               type="password" name="password" required placeholder="••••••••"
-              className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner"
+              disabled={loading || loginSuccess}
+              className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
             />
           </div>
 
           <div className="pt-6">
-            <button 
-              type="submit" disabled={loading}
-              className={`w-full py-4 px-6 text-white font-bold text-lg rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 ${
-                loading 
-                ? 'bg-slate-800 text-slate-500 shadow-none cursor-not-allowed border border-slate-700' 
+            <button
+              type="submit" disabled={loading || loginSuccess}
+              className={`w-full py-4 px-6 text-white font-bold text-lg rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 ${(loading || loginSuccess)
+                ? 'bg-slate-800 text-slate-500 shadow-none cursor-not-allowed border border-slate-700'
                 : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.98] shadow-indigo-900/50 border border-indigo-500/50'
-              }`}
+                }`}
             >
               {loading ? (
                 <>
@@ -102,7 +121,7 @@ export default function LoginPage() {
       <div className="text-center mt-10 relative z-10 flex flex-col items-center gap-2">
         <div className="w-12 h-1 bg-slate-800 rounded-full"></div>
         <p className="text-xs text-slate-500 font-bold tracking-widest uppercase">
-          Akses Terbatas • Enkripsi 256-bit<br/>© 2026 Hak Cipta Dilindungi
+          Akses Terbatas • Enkripsi 256-bit<br />© 2026 Hak Cipta Dilindungi
         </p>
       </div>
 

@@ -15,45 +15,41 @@ export default async function CategoriesPage() {
   async function handleCreateCategory(formData: FormData) {
     'use server'
     const result = await createCategory(formData);
-    if (!result.success) {
-      throw new Error(result.message);
+    if (result.success) {
+      revalidatePath('/admin/categories');
     }
-    revalidatePath('/admin/categories');
   }
 
   // Wrapper untuk update category dengan revalidate
   async function handleUpdateCategory(formData: FormData) {
     'use server'
     const result = await updateCategory(formData);
-    if (!result.success) {
-      throw new Error(result.message);
+    if (result.success) {
+      revalidatePath('/admin/categories');
     }
-    revalidatePath('/admin/categories');
   }
 
   // Wrapper untuk toggle status dengan revalidate
   async function handleToggleStatus(formData: FormData) {
     'use server'
     const result = await toggleCategoryStatus(formData);
-    if (!result.success) {
-      throw new Error(result.message);
+    if (result.success) {
+      revalidatePath('/admin/categories');
     }
-    revalidatePath('/admin/categories');
   }
 
   // Wrapper untuk delete category dengan revalidate
   async function handleDeleteCategory(formData: FormData) {
     'use server'
     const result = await deleteCategory(formData);
-    if (!result.success) {
-      throw new Error(result.message);
+    if (result.success) {
+      revalidatePath('/admin/categories');
     }
-    revalidatePath('/admin/categories');
   }
 
   return (
     <div className="space-y-6">
-      
+
       {/* HEADER PAGE */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
@@ -70,7 +66,7 @@ export default async function CategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* KOLOM KIRI: FORM TAMBAH KATEGORI */}
         <div className="lg:col-span-5 2xl:col-span-4">
           <CreateCategoryForm createAction={handleCreateCategory} />
@@ -78,7 +74,7 @@ export default async function CategoriesPage() {
 
         {/* KOLOM KANAN: DAFTAR KATEGORI */}
         <div className="lg:col-span-7 2xl:col-span-8 space-y-4">
-          <CategoriesTable 
+          <CategoriesTable
             categories={categories}
             updateCategoryAction={handleUpdateCategory}
             toggleStatusAction={handleToggleStatus}

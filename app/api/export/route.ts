@@ -46,6 +46,10 @@ export async function GET(req: NextRequest) {
       include: {
         user: true, // Untuk ambil nama teknisi
         category: true, // Untuk ambil nama kategori
+        approver: true, // Untuk ambil nama admin yang menyetujui
+        attachments: {
+          where: { type: 'RECEIPT' }
+        }
       },
       orderBy: {
         expenseDate: 'asc', // Urutkan berdasarkan tanggal kejadian
@@ -67,6 +71,7 @@ export async function GET(req: NextRequest) {
       { header: 'Nominal (Rp)', key: 'amount', width: 20 },
       { header: 'Status', key: 'status', width: 15 },
       { header: 'Disetujui Oleh', key: 'approver', width: 20 },
+      { header: 'Link Bukti (Struk)', key: 'receipt_url', width: 45 },
     ];
 
     // Styling Header (Bold & Background)
@@ -79,21 +84,34 @@ export async function GET(req: NextRequest) {
 
     // 5. ISI DATA BARIS PER BARIS
     expenses.forEach((item, index) => {
+
+      // Format Tanggal ke WIB (DD/MM/YYYY HH:mm WIB)
+      const dateObj = new Date(item.expenseDate);
+      const day = dateObj.toLocaleString('en-GB', { day: '2-digit', timeZone: 'Asia/Jakarta' });
+      const month = dateObj.toLocaleString('en-GB', { month: '2-digit', timeZone: 'Asia/Jakarta' });
+      const yearStr = dateObj.toLocaleString('en-GB', { year: 'numeric', timeZone: 'Asia/Jakarta' });
+      const time = dateObj.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+      const formattedDate = `${day}/${month}/${yearStr} ${time} WIB`;
+
+      // Ambil receipt URL jika ada
+      const receiptUrl = item.attachments.length > 0 ? item.attachments[0].fileUrl : '-';
+
       const row = sheet.addRow({
         no: index + 1,
-        date: item.expenseDate,
+        date: formattedDate,
         technician: item.user?.name || 'Unknown',
         nik: item.user?.nik || '-',
         category: item.category?.name || '-',
         description: item.description || '-',
         amount: Number(item.amount),
         status: item.status,
-        approver: item.approvedById ? 'Admin' : '-', // Bisa diperbaiki fetch nama admin jika perlu
+        approver: item.approver?.name || '-',
+        receipt_url: receiptUrl
       });
 
       // Format Rupiah di Excel
       row.getCell('amount').numFmt = '"Rp" #,##0';
-      
+
       // Pewarnaan Status
       const statusCell = row.getCell('status');
       if (item.status === 'PAID') {
@@ -118,7 +136,7 @@ export async function GET(req: NextRequest) {
 
     // 7. RETURN RESPONSE DOWNLOAD
     const fileName = `Laporan-OpsClaim-${year}-${monthIndex + 1}.xlsx`;
-    
+
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
