@@ -9,13 +9,20 @@ export default function ExportButton() {
 
   const handleExport = () => {
     setIsDownloading(true);
-    
-    // Ambil bulan dari URL (jika ada), kalau tidak ada API akan pakai bulan ini
-    const month = searchParams.get('month') || '';
-    
+
+    // Ambil startDate & endDate dari URL, atau pakai bulan/minggu ini jika belum ada
+    const startDate = searchParams.get('startDate') || '';
+    const endDate = searchParams.get('endDate') || '';
+
+    // Parameter dikirim ke API, kita tambahkan status=APPROVED secara eksplisit jika perlu
+    // Tapi karena sudah di API, kita cukup kirimkan parameternya
+    let exportUrl = `/api/export?status=APPROVED`;
+    if (startDate && endDate) {
+      exportUrl += `&startDate=${startDate}&endDate=${endDate}`;
+    }
+
     // Trigger download langsung ke API
-    // Kita gunakan window.location.href agar browser menangani download stream file
-    window.location.href = `/api/export?month=${month}`;
+    window.location.href = exportUrl;
 
     // Reset loading setelah beberapa saat (karena kita tidak dapat feedback dari window.location)
     setTimeout(() => setIsDownloading(false), 3000);

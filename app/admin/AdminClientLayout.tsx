@@ -19,6 +19,7 @@ export default function AdminClientLayout({
     { name: 'Approval Bon', path: '/admin/approval', icon: '⏳' },
     { name: 'Antrean Cair', path: '/admin/queue', icon: '🏦' },
     { name: 'Staf Lapangan', path: '/admin/technicians', icon: '👨‍🔧' },
+    { name: 'Laporan', path: '/admin/report', icon: '📑' },
     { name: 'Profil Saya', path: '/profile', icon: '👤' },
   ];
 

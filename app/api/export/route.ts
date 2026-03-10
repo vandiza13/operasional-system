@@ -18,31 +18,53 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // 2. AMBIL PARAMETER BULAN (Sama persis dengan logika Dashboard)
+    // 2. AMBIL PARAMETER TANGGAL & STATUS
     const { searchParams } = new URL(req.url);
-    const monthParam = searchParams.get('month'); // format: "YYYY-MM"
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+    const statusParam = searchParams.get('status'); // e.g., 'APPROVED'
 
-    // Gunakan Waktu Server WIB (UTC+7)
-    const nowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
-    const currentDateWIB = new Date(nowStr);
+    let startDate: Date;
+    let endDate: Date;
 
-    const year = monthParam ? parseInt(monthParam.split('-')[0]) : currentDateWIB.getFullYear();
-    const monthIndex = monthParam ? parseInt(monthParam.split('-')[1]) - 1 : currentDateWIB.getMonth();
+    if (startDateParam && endDateParam) {
+      startDate = new Date(`${startDateParam}T00:00:00+07:00`);
+      endDate = new Date(`${endDateParam}T23:59:59+07:00`);
+    } else {
+      // Sama seperti dashboard, default bulan ini jika tidak ada params
+      const nowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
+      const currentDateWIB = new Date(nowStr);
+      const year = currentDateWIB.getFullYear();
+      const monthIndex = currentDateWIB.getMonth();
 
-    // 🔥 KUNCI ZONA WAKTU WIB (UTC+7) AGAR DATA SINKRON DENGAN DASHBOARD
-    const startDate = new Date(Date.UTC(year, monthIndex, 1, -7, 0, 0, 0));
-    const endDate = new Date(Date.UTC(year, monthIndex + 1, 0, 23 - 7, 59, 59, 999));
+      // 🔥 KUNCI ZONA WAKTU WIB (UTC+7) AGAR DATA SINKRON DENGAN DASHBOARD
+      startDate = new Date(Date.UTC(year, monthIndex, 1, -7, 0, 0, 0));
+      endDate = new Date(Date.UTC(year, monthIndex + 1, 0, 23 - 7, 59, 59, 999));
+    }
+
+    // Filter query utama
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const whereClause: any = {
+      expenseDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    // Filter berdasarkan status dari parameter url
+    if (statusParam && statusParam !== 'ALL') {
+      // Bisa dipisah dengan koma jika multi status, e.g status=APPROVED,PAID
+      const statuses = statusParam.split(',');
+      if (statuses.length === 1) {
+        whereClause.status = statuses[0];
+      } else {
+        whereClause.status = { in: statuses };
+      }
+    }
 
     // 3. TARIK DATA DARI DATABASE
     const expenses = await prisma.expense.findMany({
-      where: {
-        expenseDate: {
-          gte: startDate,
-          lte: endDate,
-        },
-        // Kita ambil semua status atau mau yang APPROVED/PAID saja? 
-        // Biasanya Finance butuh semua rekap, tapi bisa difilter di Excel nanti.
-      },
+      where: whereClause,
       include: {
         user: true, // Untuk ambil nama teknisi
         category: true, // Untuk ambil nama kategori
@@ -66,6 +88,8 @@ export async function GET(req: NextRequest) {
       { header: 'Tanggal', key: 'date', width: 15 },
       { header: 'Nama Teknisi', key: 'technician', width: 25 },
       { header: 'NIK', key: 'nik', width: 15 },
+      { header: 'Posisi/Jabatan', key: 'position', width: 20 },
+      { header: 'No. HP', key: 'phone', width: 15 },
       { header: 'Kategori', key: 'category', width: 20 },
       { header: 'Keterangan / No Tiket', key: 'description', width: 40 },
       { header: 'KM Sebelum', key: 'kmBefore', width: 15 },
@@ -103,6 +127,8 @@ export async function GET(req: NextRequest) {
         date: formattedDate,
         technician: item.user?.name || 'Unknown',
         nik: item.user?.nik || '-',
+        position: item.user?.position || '-',
+        phone: item.user?.phone || '-',
         category: item.category?.name || '-',
         description: item.description || '-',
         kmBefore: item.kmBefore ?? '-',
@@ -139,7 +165,8 @@ export async function GET(req: NextRequest) {
     const buffer = await workbook.xlsx.writeBuffer();
 
     // 7. RETURN RESPONSE DOWNLOAD
-    const fileName = `Laporan-OpsClaim-${year}-${monthIndex + 1}.xlsx`;
+    const formatDateForFile = (d: Date) => d.toLocaleDateString('id-ID', { year: '2-digit', month: '2-digit', day: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\//g, '');
+    const fileName = `Laporan-OpsClaim-${formatDateForFile(startDate)}-${formatDateForFile(endDate)}.xlsx`;
 
     return new NextResponse(buffer, {
       headers: {
