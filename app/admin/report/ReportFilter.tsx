@@ -92,37 +92,37 @@ export default function ReportFilter() {
     };
 
     return (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto h-full">
             {/* FILTER STATUS */}
-            <div className="bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700 shadow-sm flex items-center gap-3">
+            <div className="bg-slate-800/80 px-4 h-[52px] rounded-2xl border border-slate-700/80 shadow-sm flex items-center gap-3 hover:bg-slate-800 transition-all">
                 <span className="text-xl">📊</span>
-                <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Status Bon</span>
+                <div className="flex flex-col flex-1 pb-1">
+                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Status Bon</span>
                     <select
                         value={currentStatus}
                         onChange={handleStatusChange}
-                        className="bg-transparent text-sm text-white font-bold tracking-wide focus:outline-none appearance-none cursor-pointer pr-4"
+                        className="bg-transparent text-sm text-white font-bold tracking-wide focus:outline-none appearance-none cursor-pointer pr-6 w-full leading-none"
                     >
                         <option value="ALL" className="bg-slate-800">Semua Status</option>
-                        <option value="APPROVED" className="bg-slate-800">Telah Disetujui (APPROVED)</option>
-                        <option value="PAID" className="bg-slate-800">Telah Dibayar (PAID)</option>
-                        <option value="PENDING" className="bg-slate-800">Menunggu (PENDING)</option>
-                        <option value="REJECTED" className="bg-slate-800">Ditolak (REJECTED)</option>
+                        <option value="APPROVED" className="bg-slate-800 text-blue-400">Telah Disetujui (APPROVED)</option>
+                        <option value="PAID" className="bg-slate-800 text-emerald-400">Telah Dibayar (PAID)</option>
+                        <option value="PENDING" className="bg-slate-800 text-amber-400">Menunggu (PENDING)</option>
+                        <option value="REJECTED" className="bg-slate-800 text-rose-400">Ditolak (REJECTED)</option>
                     </select>
                 </div>
             </div>
 
             {/* FILTER TANGGAL */}
-            <div ref={containerRef} className="relative z-40 w-full sm:w-auto">
+            <div ref={containerRef} className="relative z-40 w-full sm:w-auto h-[52px]">
                 <div
                     onClick={() => setIsOpen(!isOpen)}
-                    className="bg-slate-800/80 hover:bg-slate-700/80 transition-all px-4 py-2.5 rounded-xl border border-slate-700 shadow-sm flex items-center gap-3 cursor-pointer group select-none w-full sm:w-auto"
+                    className="bg-slate-800/80 hover:bg-slate-700/80 transition-all px-4 h-full rounded-2xl border border-slate-700/80 shadow-sm flex items-center gap-3 cursor-pointer group select-none w-full sm:w-auto min-w-[220px]"
                 >
                     <span className="text-xl group-hover:scale-110 transition-transform">📅</span>
 
-                    <div className="flex flex-col text-left flex-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Rentang Tanggal</span>
-                        <div className="text-sm text-white font-bold tracking-wide flex items-center">
+                    <div className="flex flex-col text-left flex-1 pb-1">
+                        <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-0.5">Rentang Waktu</span>
+                        <div className="text-sm text-white font-bold tracking-wide flex items-center leading-none">
                             {currentStartDate && currentEndDate ? `${formatDisplayDate(currentStartDate)} - ${formatDisplayDate(currentEndDate)}` : 'Pilih Rentang Waktu'}
                         </div>
                     </div>

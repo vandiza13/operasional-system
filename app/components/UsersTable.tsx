@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import EditUserModal from './EditUserModal';
 
 interface User {
@@ -27,6 +27,18 @@ export default function UsersTable({
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const q = searchQuery.toLowerCase();
+    return users.filter((u) => {
+      const name = u.name.toLowerCase();
+      const email = u.email.toLowerCase();
+      const role = u.role.toLowerCase();
+      return name.includes(q) || email.includes(q) || role.includes(q);
+    });
+  }, [users, searchQuery]);
 
   const handleEdit = async (formData: FormData) => {
     setLoading(`edit-${formData.get('id')}`);
@@ -110,6 +122,25 @@ export default function UsersTable({
 
   return (
     <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 overflow-hidden relative backdrop-blur-sm">
+      {/* SEARCH BAR */}
+      <div className="p-4 pb-0">
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Cari nama, email, atau role..."
+            className="w-full pl-11 pr-4 py-3 bg-slate-900/80 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-xs">✕</button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className="text-xs text-slate-400 font-medium mt-2">Menampilkan {filteredUsers.length} dari {users.length} user</p>
+        )}
+      </div>
       <div className="overflow-x-auto p-2">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -120,7 +151,7 @@ export default function UsersTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/50">
-            {users.length === 0 ? (
+            {filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={3} className="p-16 text-center">
                   <div className="text-5xl mb-4 grayscale opacity-20">📭</div>
@@ -129,7 +160,7 @@ export default function UsersTable({
                 </td>
               </tr>
             ) : (
-              users.map((u) => (
+              filteredUsers.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-800/80 transition-colors">
                   <td className="p-4 pl-6">
                     <div className="flex items-center gap-2">
@@ -166,8 +197,8 @@ export default function UsersTable({
                         disabled={loading !== null || isProtectedUser(u.email)}
                         title={isProtectedUser(u.email) ? 'Protected account cannot be deleted' : 'Delete user'}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-30 ${isProtectedUser(u.email)
-                            ? 'bg-slate-700/30 text-slate-500 border border-slate-600/30 cursor-not-allowed'
-                            : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
+                          ? 'bg-slate-700/30 text-slate-500 border border-slate-600/30 cursor-not-allowed'
+                          : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
                           }`}
                       >
                         {isProtectedUser(u.email) ? '🔒 Locked' : '🗑️ Delete'}

@@ -23,7 +23,7 @@ export default async function ApprovalPage({
   const [rawPendingList, totalCount] = await Promise.all([
     prisma.expense.findMany({
       where: { status: 'PENDING' },
-      orderBy: { createdAt: 'asc' }, // Urutkan yang lama dulu (FIFO)
+      orderBy: { expenseDate: 'asc' }, // Urutkan berdasarkan tanggal nota terlama dulu
       include: { user: true, attachments: true },
       take: limit, // Ambil cuma 10
       skip: skip,  // Lewati data halaman sebelumnya

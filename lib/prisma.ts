@@ -1,16 +1,19 @@
-// lib/prisma.ts
 import { PrismaClient } from '@prisma/client';
+import { connect } from '@tidbcloud/serverless';
+import { PrismaTiDBCloud } from '@tidbcloud/prisma-adapter';
 
 const prismaClientSingleton = () => {
   const databaseUrl = process.env.DATABASE_URL;
   
-  // Validasi keamanan sederhana
   if (!databaseUrl) {
     throw new Error('❌ DATABASE_URL tidak ditemukan! Pastikan sudah di-set di file .env');
   }
 
-  // Menggunakan koneksi native Prisma (MySQL Protocol) yang sangat stabil
-  return new PrismaClient();
+  const connection = connect({ url: databaseUrl });
+  
+  const adapter = new PrismaTiDBCloud(connection);
+
+  return new PrismaClient({ adapter });
 };
 
 declare global {

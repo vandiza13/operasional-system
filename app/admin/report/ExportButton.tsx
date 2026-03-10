@@ -33,10 +33,10 @@ export default function ExportButton({
         <button
             onClick={handleExport}
             disabled={isDownloading || !startDate || !endDate}
-            className={`px-4 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 
+            className={`h-[52px] px-6 rounded-2xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2 w-full sm:w-auto
         ${isDownloading || !startDate || !endDate
                     ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/50 active:scale-95'
+                    : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/50 hover:shadow-emerald-500/20 active:scale-95'
                 }`}
         >
             {isDownloading ? (

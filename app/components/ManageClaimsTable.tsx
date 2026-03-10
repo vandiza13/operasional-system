@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { deleteExpensePermanent, updateExpenseRecord } from '@/app/actions/manage';
 
@@ -28,9 +28,23 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     const [editingClaim, setEditingClaim] = useState<Expense | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Sorting: newest first (already sorted from server, but just in case)
-    const sortedExpenses = [...expenses].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Filter berdasarkan pencarian
+    const filteredExpenses = useMemo(() => {
+        const sorted = [...expenses].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (!searchQuery.trim()) return sorted;
+        const q = searchQuery.toLowerCase();
+        return sorted.filter((exp) => {
+            const name = exp.user?.name?.toLowerCase() || '';
+            const desc = exp.description?.toLowerCase() || '';
+            const status = exp.status.toLowerCase();
+            const category = exp.category?.name?.toLowerCase() || '';
+            const nik = exp.user?.nik?.toLowerCase() || '';
+            const amount = String(exp.amount);
+            return name.includes(q) || desc.includes(q) || status.includes(q) || category.includes(q) || nik.includes(q) || amount.includes(q);
+        });
+    }, [expenses, searchQuery]);
 
     const handleDelete = async (id: string) => {
         if (!confirm('Peringatan Kritis: Apakah Anda yakin ingin menghapus data bon ini secara PERMANEN? Data yang dihapus tidak bisa dikembalikan.')) return;
@@ -76,6 +90,23 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
     return (
         <div className="space-y-6">
 
+            {/* SEARCH BAR */}
+            <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari berdasarkan nama teknisi, deskripsi, status, kategori, NIK..."
+                    className="w-full pl-11 pr-4 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                />
+                {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-xs">✕</button>
+                )}
+            </div>
+            {searchQuery && (
+                <p className="text-xs text-slate-400 font-medium -mt-4">Menampilkan {filteredExpenses.length} dari {expenses.length} data</p>
+            )}
             {/* TABLE DATA */}
             <div className="overflow-x-auto rounded-2xl border border-slate-700/50 bg-slate-900/50">
                 <table className="w-full text-left text-sm">
@@ -92,11 +123,11 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/50 text-slate-300">
-                        {sortedExpenses.length === 0 ? (
+                        {filteredExpenses.length === 0 ? (
                             <tr>
                                 <td colSpan={8} className="px-5 py-12 text-center text-slate-500 font-medium">Belum ada data riwayat sama sekali.</td>
                             </tr>
-                        ) : sortedExpenses.map((expense) => (
+                        ) : filteredExpenses.map((expense) => (
                             <tr key={expense.id} className="hover:bg-slate-800/30 transition-colors">
                                 <td className="px-5 py-3 text-xs text-slate-400">{formatDate(expense.createdAt)}</td>
                                 <td className="px-5 py-3">

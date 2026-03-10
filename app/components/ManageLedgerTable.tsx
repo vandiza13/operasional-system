@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { addLedgerEntry, deleteLedgerEntry, updateLedgerEntry } from '@/app/actions/ledger';
 
@@ -21,9 +21,21 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [editingLedger, setEditingLedger] = useState<LedgerEntry | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Sorting: newest first 
-    const sortedLedgers = [...ledgers].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Filter & Sort
+    const filteredLedgers = useMemo(() => {
+        const sorted = [...ledgers].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        if (!searchQuery.trim()) return sorted;
+        const q = searchQuery.toLowerCase();
+        return sorted.filter((l) => {
+            const desc = l.description?.toLowerCase() || '';
+            const admin = l.admin?.name?.toLowerCase() || '';
+            const type = l.type === 'TOP_UP' ? 'debit masuk top up' : 'kredit keluar';
+            const amount = String(l.amount);
+            return desc.includes(q) || admin.includes(q) || type.includes(q) || amount.includes(q);
+        });
+    }, [ledgers, searchQuery]);
 
     const handleDelete = async (id: string, isAutomatedBatch: boolean) => {
         if (isAutomatedBatch) {
@@ -95,7 +107,7 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
             <div className="flex items-center justify-between border-b border-slate-700/50 pb-4">
                 <div>
                     <h3 className="text-lg font-black text-white">Log Transaksi Kas</h3>
-                    <p className="text-sm text-slate-400">Total {sortedLedgers.length} riwayat tercatat.</p>
+                    <p className="text-sm text-slate-400">Total {filteredLedgers.length} riwayat tercatat.</p>
                 </div>
                 <button
                     onClick={() => setIsAddingMode(true)}
@@ -104,6 +116,24 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
                     <span>➕</span> Tambah Saldo (Top-Up)
                 </button>
             </div>
+
+            {/* SEARCH BAR */}
+            <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari berdasarkan deskripsi, admin, tipe transaksi, atau nominal..."
+                    className="w-full pl-11 pr-4 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                />
+                {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-xs">✕</button>
+                )}
+            </div>
+            {searchQuery && (
+                <p className="text-xs text-slate-400 font-medium">Menampilkan {filteredLedgers.length} dari {ledgers.length} data</p>
+            )}
 
             {/* TABLE DATA */}
             <div className="overflow-x-auto rounded-2xl border border-slate-700/50 bg-slate-900/50">
@@ -120,11 +150,11 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-700/50 text-slate-300">
-                        {sortedLedgers.length === 0 ? (
+                        {filteredLedgers.length === 0 ? (
                             <tr>
                                 <td colSpan={7} className="px-5 py-12 text-center text-slate-500 font-medium">Buku kas masih benar-benar kosong.</td>
                             </tr>
-                        ) : sortedLedgers.map((ledger) => (
+                        ) : filteredLedgers.map((ledger) => (
                             <tr key={ledger.id} className="hover:bg-slate-800/30 transition-colors">
                                 <td className="px-5 py-3 text-xs text-slate-400">{formatDate(ledger.createdAt)}</td>
                                 <td className="px-5 py-3">

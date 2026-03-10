@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 interface Category {
   id: string;
@@ -24,6 +24,13 @@ export default function CategoriesTable({
   const [editName, setEditName] = useState('');
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredCategories = useMemo(() => {
+    if (!searchQuery.trim()) return categories;
+    const q = searchQuery.toLowerCase();
+    return categories.filter((c) => c.name.toLowerCase().includes(q));
+  }, [categories, searchQuery]);
 
   const showMessage = (msg: string) => {
     setMessage(msg);
@@ -94,6 +101,24 @@ export default function CategoriesTable({
 
   return (
     <div className="space-y-4">
+      {/* SEARCH BAR */}
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari nama kategori..."
+          className="w-full pl-11 pr-4 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-xs">✕</button>
+        )}
+      </div>
+      {searchQuery && (
+        <p className="text-xs text-slate-400 font-medium">Menampilkan {filteredCategories.length} dari {categories.length} kategori</p>
+      )}
+
       {message && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-3 rounded-xl text-sm font-bold">
           ✓ {message}
@@ -111,7 +136,7 @@ export default function CategoriesTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {categories.length === 0 ? (
+              {filteredCategories.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="p-16 text-center">
                     <div className="text-5xl mb-4 grayscale opacity-20">📭</div>
@@ -120,7 +145,7 @@ export default function CategoriesTable({
                   </td>
                 </tr>
               ) : (
-                categories.map((cat) => (
+                filteredCategories.map((cat) => (
                   <tr key={cat.id} className="hover:bg-slate-800/80 transition-colors">
                     <td className="p-4 pl-6">
                       {editingId === cat.id ? (
@@ -185,8 +210,8 @@ export default function CategoriesTable({
                               onClick={() => handleToggle(cat.id)}
                               disabled={loading === `toggle-${cat.id}`}
                               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 ${cat.isActive
-                                  ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
+                                ? 'bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20'
                                 }`}
                             >
                               {loading === `toggle-${cat.id}` ? '...' : (cat.isActive ? 'Nonaktifkan' : 'Aktifkan')}

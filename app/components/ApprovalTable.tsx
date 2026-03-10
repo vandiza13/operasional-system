@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 
 interface Attachment {
@@ -40,6 +40,7 @@ export default function ApprovalTable({
   const [loading, setLoading] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // State untuk Lightbox Gambar
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
@@ -150,6 +151,18 @@ export default function ApprovalTable({
     }
   };
 
+  const filteredExpenses = useMemo(() => {
+    if (!searchQuery.trim()) return expenses;
+    const q = searchQuery.toLowerCase();
+    return expenses.filter((item) => {
+      const name = item.user?.name?.toLowerCase() || '';
+      const desc = item.description?.toLowerCase() || '';
+      const amount = String(item.amount);
+      const nik = item.user?.nik?.toLowerCase() || '';
+      return name.includes(q) || desc.includes(q) || amount.includes(q) || nik.includes(q);
+    });
+  }, [expenses, searchQuery]);
+
   if (expenses.length === 0) {
     return (
       <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 p-16 text-center backdrop-blur-sm">
@@ -162,6 +175,23 @@ export default function ApprovalTable({
 
   return (
     <div className="space-y-4">
+      {/* SEARCH BAR */}
+      <div className="relative">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Cari nama teknisi, deskripsi, NIK, atau nominal..."
+          className="w-full pl-11 pr-4 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-xs">✕</button>
+        )}
+      </div>
+      {searchQuery && (
+        <p className="text-xs text-slate-400 font-medium">Menampilkan {filteredExpenses.length} dari {expenses.length} data</p>
+      )}
       {/* --- LIGHTBOX MODAL (POP-UP GAMBAR) --- */}
       {selectedImg && (
         <div
@@ -191,7 +221,7 @@ export default function ApprovalTable({
         </div>
       )}
 
-      {expenses.map((item) => {
+      {filteredExpenses.map((item) => {
         const receipt = item.attachments?.find((a) => a.type === 'RECEIPT')?.fileUrl;
         const ev1 = item.attachments?.find((a) => a.type === 'EVIDENCE_1')?.fileUrl;
         const ev2 = item.attachments?.find((a) => a.type === 'EVIDENCE_2')?.fileUrl;
