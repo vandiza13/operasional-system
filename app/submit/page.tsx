@@ -6,6 +6,7 @@ import { getTechnicianStats, getTechnicianClaims, ClaimHistory } from '@/app/act
 import { getCurrentUser } from '@/app/actions/user';
 import { getAllCategories } from '@/app/actions/categories';
 import LogoutButton from '@/app/components/LogoutButton';
+import VandizaBrand from '@/app/components/VandizaBrand';
 import Link from 'next/link';
 
 
@@ -536,8 +537,8 @@ export default function SubmitPage() {
           )}
 
 
-          <div className="text-center mt-8 pb-8">
-            <p className="text-xs text-slate-500 font-medium">Sistem Operasional Internal © 2026</p>
+          <div className="mt-8 pb-8">
+            <VandizaBrand />
           </div>
 
         </div>

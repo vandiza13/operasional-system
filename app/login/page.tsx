@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { loginUser } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
+import VandizaBrand from '@/app/components/VandizaBrand';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -118,11 +119,8 @@ export default function LoginPage() {
         </form>
       </div>
 
-      <div className="text-center mt-10 relative z-10 flex flex-col items-center gap-2">
-        <div className="w-12 h-1 bg-slate-800 rounded-full"></div>
-        <p className="text-xs text-slate-500 font-bold tracking-widest uppercase">
-          • Operasional System •<br />©2026 VandizaDev
-        </p>
+      <div className="relative z-10 mt-10">
+        <VandizaBrand />
       </div>
 
     </div>
