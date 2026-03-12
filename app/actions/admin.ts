@@ -137,6 +137,7 @@ export async function topUpLedger(formData: FormData) {
 
 export async function payoutTechnician(formData: FormData) {
   const technicianId = formData.get('technicianId') as string;
+  const expenseIdsStr = formData.get('expenseIds') as string;
 
   try {
     const session = await getSession();
@@ -145,28 +146,42 @@ export async function payoutTechnician(formData: FormData) {
     }
     const adminId = session.userId;
 
-    // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
     const adminUser = await prisma.user.findUnique({
       where: { id: adminId },
-      select: { id: true } // Kita hanya butuh ID-nya untuk memastikan eksistensi
+      select: { id: true } 
     });
 
     if (!adminUser) {
       return { success: false, message: 'Akun Admin tidak valid/dihapus. Mohon logout dan login ulang.' };
     }
 
-    // Gunakan Transaction
+    // [BARU] Parsing string JSON menjadi Array ID
+    let expenseIds: string[] = [];
+    try {
+        if (expenseIdsStr) expenseIds = JSON.parse(expenseIdsStr);
+    } catch (e) {
+        return { success: false, message: 'Data pemilihan bon tidak valid.' };
+    }
+
+    if (!expenseIds || expenseIds.length === 0) {
+        return { success: false, message: 'Minimal pilih 1 bon untuk dicairkan.' };
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      // a. Cari bon approved
+      // a. Cari bon approved HANYA YANG DIPILIH SAJA (id in expenseIds)
       const approvedExpenses = await tx.expense.findMany({
-        where: { userId: technicianId, status: ExpenseStatus.APPROVED }
+        where: { 
+            userId: technicianId, 
+            status: ExpenseStatus.APPROVED,
+            id: { in: expenseIds } // 🔥 Filter Ajaib
+        }
       });
 
       if (approvedExpenses.length === 0) {
-        throw new Error('Tidak ada bon yang siap dicairkan.');
+        throw new Error('Tidak ada bon valid yang siap dicairkan.');
       }
 
-      // b. Hitung total
+      // b. Hitung total dari bon yang dipilih
       const totalPayout = approvedExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
       // c. Cek Saldo
@@ -177,16 +192,16 @@ export async function payoutTechnician(formData: FormData) {
         throw new Error(`Saldo Operasional tidak cukup! (Sisa: Rp ${currentBalance.toLocaleString('id-ID')})`);
       }
 
-      // d. Buat Batch Pencairan (Gunakan adminUser.id yang VALID)
+      // d. Buat Batch Pencairan
       const payoutBatch = await tx.payoutBatch.create({
         data: {
           technicianId: technicianId,
           totalAmount: totalPayout,
-          paidById: adminUser.id, // ✅ AMAN: ID ini pasti ada di tabel User
+          paidById: adminUser.id, 
         }
       });
 
-      // e. Potong Buku Kas (Gunakan adminUser.id yang VALID)
+      // e. Potong Buku Kas
       const newBalance = currentBalance - totalPayout;
       await tx.operationalLedger.create({
         data: {
@@ -194,15 +209,15 @@ export async function payoutTechnician(formData: FormData) {
           amount: totalPayout,
           balance: newBalance,
           description: `Pencairan gabungan (${approvedExpenses.length} Bon) untuk Teknisi`,
-          createdBy: adminUser.id, // ✅ AMAN
+          createdBy: adminUser.id, 
           payoutBatchId: payoutBatch.id
         }
       });
 
-      // f. Update status Bon
-      const expenseIds = approvedExpenses.map(e => e.id);
+      // f. Update status Bon yang dicairkan saja
+      const validExpenseIds = approvedExpenses.map(e => e.id);
       await tx.expense.updateMany({
-        where: { id: { in: expenseIds } },
+        where: { id: { in: validExpenseIds } },
         data: {
           status: ExpenseStatus.PAID,
           paidAt: new Date(),
