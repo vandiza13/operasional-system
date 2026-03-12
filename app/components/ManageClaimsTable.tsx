@@ -10,6 +10,7 @@ type Expense = {
     description: string | null;
     kmBefore: number | null;
     kmAfter: number | null;
+    vehiclePlate: string | null; // [BARU] Ditambahkan
     status: string;
     expenseDate: Date;
     createdAt: Date;
@@ -42,7 +43,8 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
             const category = exp.category?.name?.toLowerCase() || '';
             const nik = exp.user?.nik?.toLowerCase() || '';
             const amount = String(exp.amount);
-            return name.includes(q) || desc.includes(q) || status.includes(q) || category.includes(q) || nik.includes(q) || amount.includes(q);
+            const plate = exp.vehiclePlate?.toLowerCase() || ''; // [BARU] Pencarian Plat
+            return name.includes(q) || desc.includes(q) || status.includes(q) || category.includes(q) || nik.includes(q) || amount.includes(q) || plate.includes(q);
         });
     }, [expenses, searchQuery]);
 
@@ -97,7 +99,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari berdasarkan nama teknisi, deskripsi, status, kategori, NIK..."
+                    placeholder="Cari berdasarkan nama teknisi, deskripsi, status, kategori, NIK, Plat..."
                     className="w-full pl-11 pr-4 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                 />
                 {searchQuery && (
@@ -137,6 +139,10 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                 <td className="px-5 py-3 font-medium text-slate-400">{expense.category?.name || '-'}</td>
                                 <td className="px-5 py-3 text-xs truncate max-w-[200px] text-slate-400" title={expense.description || ''}>
                                     {expense.description || '-'}
+                                    {/* [BARU] Tampilkan Plat Kendaraan di Tabel */}
+                                    {expense.vehiclePlate && (
+                                        <div className="text-[9px] font-bold text-indigo-400 mt-1 uppercase">🚗 {expense.vehiclePlate}</div>
+                                    )}
                                 </td>
                                 <td className="px-5 py-3 font-bold text-white">{formatRp(Number(expense.amount))}</td>
                                 <td className="px-5 py-3 text-center text-xs font-semibold text-slate-400">
@@ -222,13 +228,26 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sebelumm</label>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sebelum</label>
                                         <input type="number" name="kmBefore" defaultValue={editingClaim.kmBefore ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sesudah</label>
                                         <input type="number" name="kmAfter" defaultValue={editingClaim.kmAfter ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                     </div>
+                                </div>
+
+                                {/* [BARU] Input Nopol Kendaraan di Form Edit */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nopol Kendaraan</label>
+                                    <input 
+                                        type="text" 
+                                        name="vehiclePlate" 
+                                        defaultValue={editingClaim.vehiclePlate || ''} 
+                                        disabled={isUpdating} 
+                                        placeholder="Opsional (Contoh: B 1234 XYZ)" 
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold uppercase outline-none focus:border-indigo-500 transition-all disabled:opacity-50 placeholder:normal-case placeholder:font-normal placeholder:text-slate-600" 
+                                    />
                                 </div>
 
                                 <div>

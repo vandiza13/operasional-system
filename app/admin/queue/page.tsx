@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { getCurrentBalance } from '@/app/actions/admin';
 import PayoutForm from './PayoutForm';
+import QueueEvidenceViewer from './QueueEvidenceViewer';
 
 // WAJIB: Agar Next.js selalu menarik data terbaru (tidak di-cache)
 export const dynamic = 'force-dynamic';
@@ -138,14 +139,25 @@ export default async function QueuePage() {
                           </summary>
                           <ul className="mt-3 space-y-2 text-[11px] text-slate-300 bg-slate-900/50 p-3 rounded-xl border border-slate-700/50 shadow-inner">
                             {item.expenses.map((e: any) => (
-                              <li key={e.id} className="flex justify-between items-center gap-4 border-b border-slate-800/60 pb-1.5 last:border-0 last:pb-0">
-                                <div className="flex flex-col max-w-[150px]">
-                                  <span className="truncate font-medium" title={e.description}>
+                              <li key={e.id} className="flex justify-between items-center gap-4 border-b border-slate-800/60 pb-2 last:border-0 last:pb-0">
+                                <div className="flex flex-col max-w-[200px]">
+                                  <span className="truncate font-medium text-white" title={e.description}>
                                     {e.description || 'Tanpa Keterangan'}
                                   </span>
-                                  <span className="text-[9px] text-slate-500 mt-0.5">{formatDate(e.expenseDate)}</span>
+                                  {e.vehiclePlate && (
+                                    <span className="text-[9px] font-black text-indigo-400 mt-0.5 uppercase tracking-wider">
+                                      🚗 {e.vehiclePlate}
+                                    </span>
+                                  )}
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="text-[9px] text-slate-500">{formatDate(e.expenseDate)}</span>
+                                    {/* COMPONENT VIEWER BUKTI */}
+                                    <QueueEvidenceViewer attachments={e.attachments} />
+                                  </div>
                                 </div>
-                                <span className="font-bold text-slate-400">{formatRupiah(Number(e.amount))}</span>
+                                <span className="font-bold text-slate-300 bg-slate-800 px-2 py-1 rounded border border-slate-700/50">
+                                  {formatRupiah(Number(e.amount))}
+                                </span>
                               </li>
                             ))}
                           </ul>
@@ -229,14 +241,23 @@ export default async function QueuePage() {
                       </summary>
                       <ul className="mt-3 space-y-2 text-[11px] text-slate-300 bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-inner">
                         {item.expenses.map((e: any) => (
-                          <li key={e.id} className="flex justify-between items-start gap-3 border-b border-slate-800/60 pb-2 last:border-0 last:pb-0">
+                          <li key={e.id} className="flex justify-between items-start gap-3 border-b border-slate-800/60 pb-3 last:border-0 last:pb-0">
                             <div className="flex flex-col flex-1 pt-0.5">
-                              <span className="font-medium leading-relaxed">
+                              <span className="font-medium leading-relaxed text-white">
                                 {e.description || 'Tidak ada deskripsi pekerjaan'}
                               </span>
-                              <span className="text-[9px] text-slate-500 mt-1 font-semibold">{formatDate(e.expenseDate)}</span>
+                              {e.vehiclePlate && (
+                                <span className="text-[10px] font-black text-indigo-400 mt-1 uppercase tracking-wider">
+                                  🚗 Plat: {e.vehiclePlate}
+                                </span>
+                              )}
+                              <div className="flex items-center gap-3 mt-1.5">
+                                <span className="text-[9px] text-slate-500 font-semibold">{formatDate(e.expenseDate)}</span>
+                                {/* COMPONENT VIEWER BUKTI */}
+                                <QueueEvidenceViewer attachments={e.attachments} />
+                              </div>
                             </div>
-                            <span className="font-bold text-slate-400 whitespace-nowrap bg-slate-900 px-2 py-1 rounded">
+                            <span className="font-bold text-slate-300 whitespace-nowrap bg-slate-900 px-2.5 py-1.5 rounded border border-slate-700/50 shadow-sm mt-0.5">
                               {formatRupiah(Number(e.amount))}
                             </span>
                           </li>

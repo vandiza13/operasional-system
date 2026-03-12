@@ -87,6 +87,9 @@ export default function SubmitPage() {
     const kmAfterEl = form.elements.namedItem('kmAfter') as HTMLInputElement;
     if (kmAfterEl && kmAfterEl.value) formData.append('kmAfter', kmAfterEl.value);
 
+    const vehiclePlateEl = form.elements.namedItem('vehiclePlate') as HTMLInputElement;
+    if (vehiclePlateEl && vehiclePlateEl.value) formData.append('vehiclePlate', vehiclePlateEl.value);
+
     if (compressedReceipt) formData.append('receipt', compressedReceipt);
     if (compressedEvidence[0]) formData.append('evidence1', compressedEvidence[0]);
     if (compressedEvidence[1]) formData.append('evidence2', compressedEvidence[1]);
@@ -302,6 +305,11 @@ export default function SubmitPage() {
                 <div className="space-y-1.5">
                   <label htmlFor="description" className="block text-sm font-bold text-slate-400 ml-1">Deskripsi Pekerjaan / Nomer Tiket</label>
                   <textarea id="description" name="description" required rows={2} placeholder="Contoh: Beli bensin untuk tiket #12345..." className="w-full px-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all resize-none placeholder:text-slate-600 placeholder:font-normal"></textarea>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="vehiclePlate" className="block text-sm font-bold text-slate-400 ml-1">Plat Kendaraan</label>
+                  <input type="text" id="vehiclePlate" name="vehiclePlate" placeholder="Contoh: B 1234 XYZ" className="w-full px-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -578,6 +586,7 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
     expenseDate: '',
     amount: '',
     description: '',
+    vehiclePlate: '',
     kmBefore: '',
     kmAfter: ''
   });
@@ -598,6 +607,7 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
           expenseDate: new Date(d.expenseDate).toISOString().split('T')[0],
           amount: String(d.amount),
           description: d.description || '',
+          vehiclePlate: d.vehiclePlate || '',
           kmBefore: d.kmBefore ? String(d.kmBefore) : '',
           kmAfter: d.kmAfter ? String(d.kmAfter) : ''
         });
@@ -670,6 +680,7 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
     payload.append('expenseDate', formData.expenseDate);
     if (formData.kmBefore) payload.append('kmBefore', formData.kmBefore);
     if (formData.kmAfter) payload.append('kmAfter', formData.kmAfter);
+    if (formData.vehiclePlate) payload.append('vehiclePlate', formData.vehiclePlate);
 
     if (compressedReceipt) payload.append('receipt', compressedReceipt);
     if (compressedEvidence[0]) payload.append('evidence1', compressedEvidence[0]);
@@ -753,6 +764,17 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
                   value={formData.description}
                   onChange={e => setFormData({ ...formData, description: e.target.value })}
                 ></textarea>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-400 ml-1">Plat Nomor Kendaraan</label>
+                <input
+                  type="text" required disabled={submitting}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 text-white text-sm outline-none disabled:opacity-50"
+                  placeholder="Contoh: B 1234 ABC"
+                  value={formData.vehiclePlate}
+                  onChange={e => setFormData({ ...formData, vehiclePlate: e.target.value.toUpperCase() })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

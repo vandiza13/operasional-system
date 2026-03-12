@@ -83,6 +83,7 @@ model Expense {
   description      String?             @db.Text
   kmBefore         Int?
   kmAfter          Int?
+  vehiclePlate     String?           // Nopol/Plat Kendaraan
 
   status           ExpenseStatus       @default(PENDING)
 

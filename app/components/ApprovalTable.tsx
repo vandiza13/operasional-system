@@ -23,6 +23,7 @@ interface Expense {
   } | null;
   kmBefore?: number | null;
   kmAfter?: number | null;
+  vehiclePlate?: string | null;
   attachments: Attachment[];
 }
 
@@ -159,7 +160,8 @@ export default function ApprovalTable({
       const desc = item.description?.toLowerCase() || '';
       const amount = String(item.amount);
       const nik = item.user?.nik?.toLowerCase() || '';
-      return name.includes(q) || desc.includes(q) || amount.includes(q) || nik.includes(q);
+      const vehiclePlate = item.vehiclePlate?.toLowerCase() || '';
+      return name.includes(q) || desc.includes(q) || amount.includes(q) || nik.includes(q) || vehiclePlate.includes(q);
     });
   }, [expenses, searchQuery]);
 
@@ -273,6 +275,10 @@ export default function ApprovalTable({
                 <p className="text-sm font-medium text-slate-300 leading-relaxed">
                   {item.description || 'No description'}
                 </p>
+                <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Plat Nomor</p>
+                  <p className="text-sm font-bold text-white text-center mt-0.5">{item.vehiclePlate ?? '-'}</p>
+                </div>
                 <div className="mt-3 pt-3 border-t border-slate-700/50 grid grid-cols-2 gap-2">
                   <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sebelum</p>

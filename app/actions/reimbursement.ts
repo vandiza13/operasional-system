@@ -59,7 +59,8 @@ export async function submitReimbursement(formData: FormData) {
     // Tambahan baru sesuai skema
     const categoryId = formData.get('categoryId') as string;
     const expenseDate = formData.get('expenseDate') as string;
-
+    // Plat Kendaraan
+    const vehiclePlate = formData.get('vehiclePlate') as string | null;
     // Fitur Baru KM
     const kmBeforeStr = formData.get('kmBefore') as string;
     const kmAfterStr = formData.get('kmAfter') as string;
@@ -151,6 +152,7 @@ export async function submitReimbursement(formData: FormData) {
         description: description,
         kmBefore: kmBefore,
         kmAfter: kmAfter,
+        vehiclePlate: vehiclePlate,
         expenseDate: new Date(expenseDate),
         status: 'PENDING',
         attachments: {
@@ -227,6 +229,8 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
     const categoryId = formData.get('categoryId') as string;
     const expenseDate = formData.get('expenseDate') as string;
 
+    const vehiclePlate = formData.get('vehiclePlate') as string | null;
+    
     const kmBeforeStr = formData.get('kmBefore') as string;
     const kmAfterStr = formData.get('kmAfter') as string;
     const kmBefore = kmBeforeStr ? parseInt(kmBeforeStr, 10) : null;
@@ -282,6 +286,7 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
           description,
           kmBefore,
           kmAfter,
+          vehiclePlate,
           expenseDate: new Date(expenseDate),
         }
       });

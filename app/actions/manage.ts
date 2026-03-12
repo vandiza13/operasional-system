@@ -87,6 +87,9 @@ export async function updateExpenseRecord(formData: FormData) {
         const kmBeforeStr = formData.get('kmBefore') as string;
         const kmAfterStr = formData.get('kmAfter') as string;
         const status = formData.get('status') as string;
+        
+        // [BARU] Menangkap data Nopol Kendaraan dari form edit Admin
+        const vehiclePlate = formData.get('vehiclePlate') as string | null;
 
         if (!id || !amountStr) {
             return { success: false, message: 'Data tidak lengkap.' };
@@ -115,6 +118,12 @@ export async function updateExpenseRecord(formData: FormData) {
             updateData.kmAfter = parseInt(kmAfterStr, 10);
         } else {
             updateData.kmAfter = null; // allow clearing
+        }
+
+        // [BARU] Menyimpan data Plat Nomor ke Database
+        if (vehiclePlate !== null) {
+            // Jika kosong/dihapus, set ke null. Jika ada isi, jadikan huruf besar (Uppercase)
+            updateData.vehiclePlate = vehiclePlate.trim() === '' ? null : vehiclePlate.trim().toUpperCase();
         }
 
         await prisma.expense.update({
