@@ -10,10 +10,10 @@ type Expense = {
     description: string | null;
     kmBefore: number | null;
     kmAfter: number | null;
-    vehiclePlate: string | null; // [BARU] Ditambahkan
+    vehiclePlate: string | null; 
     status: string;
-    expenseDate: Date;
-    createdAt: Date;
+    expenseDate: Date; // Tanggal di Bon/Nota Asli
+    createdAt: Date;   // Tanggal diinput ke sistem
     user: { name: string; nik: string | null; phone: string | null };
     category: { id: string; name: string };
     approver: { name: string } | null;
@@ -43,7 +43,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
             const category = exp.category?.name?.toLowerCase() || '';
             const nik = exp.user?.nik?.toLowerCase() || '';
             const amount = String(exp.amount);
-            const plate = exp.vehiclePlate?.toLowerCase() || ''; // [BARU] Pencarian Plat
+            const plate = exp.vehiclePlate?.toLowerCase() || ''; 
             return name.includes(q) || desc.includes(q) || status.includes(q) || category.includes(q) || nik.includes(q) || amount.includes(q) || plate.includes(q);
         });
     }, [expenses, searchQuery]);
@@ -81,12 +81,21 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
     const formatRp = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 
+    // Format untuk Tanggal Input Sistem
     const formatDate = (dateValue: any) => {
         const d = new Date(dateValue);
         return new Intl.DateTimeFormat('id-ID', {
             day: '2-digit', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
         }).format(d) + ' WIB';
+    };
+
+    // [BARU] Format khusus untuk Tanggal Nota agar lebih ringkas
+    const formatNotaDate = (dateValue: any) => {
+        const d = new Date(dateValue);
+        return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric', month: 'long', year: 'numeric'
+        }).format(d);
     };
 
     return (
@@ -109,12 +118,13 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
             {searchQuery && (
                 <p className="text-xs text-slate-400 font-medium -mt-4">Menampilkan {filteredExpenses.length} dari {expenses.length} data</p>
             )}
+            
             {/* TABLE DATA */}
             <div className="overflow-x-auto rounded-2xl border border-slate-700/50 bg-slate-900/50">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-800/80 text-slate-300 uppercase text-[10px] font-black tracking-wider">
                         <tr>
-                            <th className="px-5 py-4">Tgl Dibuat</th>
+                            <th className="px-5 py-4">Tanggal</th>
                             <th className="px-5 py-4">Teknisi</th>
                             <th className="px-5 py-4">Kategori</th>
                             <th className="px-5 py-4 max-w-[200px]">Deskripsi / Tiket</th>
@@ -131,7 +141,15 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                             </tr>
                         ) : filteredExpenses.map((expense) => (
                             <tr key={expense.id} className="hover:bg-slate-800/30 transition-colors">
-                                <td className="px-5 py-3 text-xs text-slate-400">{formatDate(expense.createdAt)}</td>
+                                <td className="px-5 py-3">
+                                    {/* [BARU] Menampilkan Tgl Nota & Input sekaligus */}
+                                    <div className="font-black text-indigo-400 text-xs whitespace-nowrap mb-0.5">
+                                        📅 {formatNotaDate(expense.expenseDate)}
+                                    </div>
+                                    <div className="text-[9px] text-slate-500 font-medium whitespace-nowrap">
+                                        Input: {formatDate(expense.createdAt)}
+                                    </div>
+                                </td>
                                 <td className="px-5 py-3">
                                     <div className="font-bold text-white">{expense.user?.name || '-'}</div>
                                     <div className="text-[10px] text-slate-500">{expense.user?.nik || '-'}</div>
@@ -139,7 +157,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                 <td className="px-5 py-3 font-medium text-slate-400">{expense.category?.name || '-'}</td>
                                 <td className="px-5 py-3 text-xs truncate max-w-[200px] text-slate-400" title={expense.description || ''}>
                                     {expense.description || '-'}
-                                    {/* [BARU] Tampilkan Plat Kendaraan di Tabel */}
+                                    {/* Tampilkan Plat Kendaraan di Tabel */}
                                     {expense.vehiclePlate && (
                                         <div className="text-[9px] font-bold text-indigo-400 mt-1 uppercase">🚗 {expense.vehiclePlate}</div>
                                     )}
@@ -157,7 +175,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                         {expense.status}
                                     </span>
                                 </td>
-                                <td className="px-5 py-3 text-right space-x-2">
+                                <td className="px-5 py-3 text-right space-x-2 whitespace-nowrap">
                                     <button
                                         onClick={() => setEditingClaim(expense)}
                                         className="inline-flex items-center justify-center p-2 bg-slate-800 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 rounded-lg transition-all border border-slate-700/50 hover:border-indigo-500/30"
@@ -237,7 +255,6 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                     </div>
                                 </div>
 
-                                {/* [BARU] Input Nopol Kendaraan di Form Edit */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nopol Kendaraan</label>
                                     <input 

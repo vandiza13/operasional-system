@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { getSession } from '@/lib/session';
+import { del } from '@vercel/blob';
 
 /**
  * Validasi Role Super Admin
@@ -42,28 +43,46 @@ export async function deleteExpensePermanent(expenseId: string) {
             return { success: false, message: 'ID Klaim tidak valid.' };
         }
 
+        // [UBAH] 1. Ambil data expense beserta daftar URL attachment-nya
         const expense = await prisma.expense.findUnique({
-            where: { id: expenseId }
+            where: { id: expenseId },
+            include: { attachments: true } // Wajib di-include agar URL file terbaca
         });
 
         if (!expense) {
             return { success: false, message: 'Data klaim tidak ditemukan.' };
         }
 
-        // Prisma OnDelete Cascade pada ExpenseAttachment sudah dikonfigurasi di schema, 
-        // jadi menghapus expense akan otomatis menghapus attachment records dari DB.
-        // (File fisik di Vercel Blob masih ada, tapi record di DB bersih)
-
+        // 2. Hapus data dari Database (Record Expense & ExpenseAttachment hilang)
         await prisma.expense.delete({
             where: { id: expenseId }
         });
+
+        // 3. [BARU] Bersihkan file fisik di Vercel Blob
+        if (expense.attachments && expense.attachments.length > 0) {
+            // Saring hanya URL yang di-hosting di Vercel Blob
+            const blobUrlsToDelete = expense.attachments
+                .map(att => att.fileUrl)
+                .filter(url => url.includes('blob.vercel-storage.com'));
+
+            // Jika ada file yang perlu dihapus, eksekusi penghapusan massal
+            if (blobUrlsToDelete.length > 0) {
+                try {
+                    await del(blobUrlsToDelete);
+                    console.log('✅ Berhasil menyapu bersih file sampah dari Vercel Blob:', blobUrlsToDelete.length, 'file');
+                } catch (blobErr) {
+                    console.error('⚠️ Peringatan: Gagal menghapus file dari Vercel Blob (mungkin sudah terhapus):', blobErr);
+                    // Kita tidak me-return error ke user karena data di DB sudah berhasil dihapus
+                }
+            }
+        }
 
         revalidatePath('/admin');
         revalidatePath('/admin/manage');
         revalidatePath('/admin/approval');
         revalidatePath('/admin/queue');
 
-        return { success: true, message: 'Data klaim berhasil dihapus permanen.' };
+        return { success: true, message: 'Data klaim dan file bukti berhasil dihapus permanen.' };
     } catch (error) {
         console.error('Error deleting expense:', error);
         return { success: false, message: 'Terjadi kesalahan sistem saat menghapus data.' };

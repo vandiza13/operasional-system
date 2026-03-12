@@ -2,13 +2,13 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { put } from '@vercel/blob';
+import { put, del } from '@vercel/blob'; // [BARU] Import del untuk menghapus sampah file
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { getSession } from '@/lib/session';
 import { AttachmentType } from '@prisma/client';
 
-// Fungsi bantuan untuk mengunggah file (TETAP SAMA SEPERTI MILIK ANDA)
+// Fungsi bantuan untuk mengunggah file
 async function uploadFile(file: File | null, folderName: string): Promise<string | null> {
   if (!file || file.size === 0) return null;
 
@@ -20,7 +20,6 @@ async function uploadFile(file: File | null, folderName: string): Promise<string
   if (blobToken) {
     try {
       const blob = await put(`${folderName}/${fileName}`, file, { access: 'public', addRandomSuffix: true });
-
       return blob.url;
     } catch (error) {
       throw new Error(`Vercel Blob upload failed: ${String(error)}`);
@@ -56,16 +55,15 @@ export async function submitReimbursement(formData: FormData) {
     // 1. AMBIL & VALIDASI DATA TEKS DULU (Cegah upload sia-sia jika data teks salah)
     const amount = formData.get('amount') as string;
     const description = formData.get('description') as string;
-    // Tambahan baru sesuai skema
     const categoryId = formData.get('categoryId') as string;
     const expenseDate = formData.get('expenseDate') as string;
-    // Plat Kendaraan
-    const vehiclePlate = formData.get('vehiclePlate') as string | null;
-    // Fitur Baru KM
+
+    // Fitur Baru KM & Nopol
     const kmBeforeStr = formData.get('kmBefore') as string;
     const kmAfterStr = formData.get('kmAfter') as string;
     const kmBefore = kmBeforeStr ? parseInt(kmBeforeStr, 10) : null;
     const kmAfter = kmAfterStr ? parseInt(kmAfterStr, 10) : null;
+    const vehiclePlate = formData.get('vehiclePlate') as string | null; // [TERJAGA] Nopol dipertahankan
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return { success: false, message: 'Nominal tidak valid!' };
     if (!expenseDate || isNaN(Date.parse(expenseDate))) return { success: false, message: 'Tanggal pengeluaran tidak valid!' };
@@ -132,8 +130,7 @@ export async function submitReimbursement(formData: FormData) {
       return { success: false, message: 'Ada gambar yang gagal diunggah.' };
     }
 
-    // 6. INSERT KE DATABASE (TiDB Safe - Nested Write)
-    // Sekarang menggunakan tabel Expense dan ExpenseAttachment
+    // 6. INSERT KE DATABASE
     const attachmentsToCreate = [
       { type: 'RECEIPT', fileUrl: urls[0] as string },
       { type: 'EVIDENCE_1', fileUrl: urls[1] as string },
@@ -150,9 +147,9 @@ export async function submitReimbursement(formData: FormData) {
         categoryId: categoryId,
         amount: parseFloat(amount),
         description: description,
+        vehiclePlate: vehiclePlate ? vehiclePlate.trim().toUpperCase() : null, // [TERJAGA] Simpan Nopol
         kmBefore: kmBefore,
         kmAfter: kmAfter,
-        vehiclePlate: vehiclePlate,
         expenseDate: new Date(expenseDate),
         status: 'PENDING',
         attachments: {
@@ -181,18 +178,16 @@ export async function getClaimForEdit(expenseId: string) {
     const userId = session.userId;
 
     const expense = await prisma.expense.findUnique({
-      where: { id: expenseId, userId: userId }, // Pastikan hanya milik teknisi ybs
+      where: { id: expenseId, userId: userId },
       include: { attachments: true }
     });
 
     if (!expense) return { success: false, message: 'Data tidak ditemukan.' };
 
-    // Cegah edit jika sudah diproses
     if (expense.status !== 'PENDING') {
       return { success: false, message: 'Klaim ini sudah tidak bisa diedit karena statusnya bukan PENDING.' };
     }
 
-    // Serialize Prisma Decimal (amount) into a plain number for client usage
     const serializedExpense = {
       ...expense,
       amount: Number(expense.amount),
@@ -229,12 +224,11 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
     const categoryId = formData.get('categoryId') as string;
     const expenseDate = formData.get('expenseDate') as string;
 
-    const vehiclePlate = formData.get('vehiclePlate') as string | null;
-    
     const kmBeforeStr = formData.get('kmBefore') as string;
     const kmAfterStr = formData.get('kmAfter') as string;
     const kmBefore = kmBeforeStr ? parseInt(kmBeforeStr, 10) : null;
     const kmAfter = kmAfterStr ? parseInt(kmAfterStr, 10) : null;
+    const vehiclePlate = formData.get('vehiclePlate') as string | null; // [TERJAGA] Nopol
 
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) return { success: false, message: 'Nominal tidak valid!' };
     if (!expenseDate || isNaN(Date.parse(expenseDate))) return { success: false, message: 'Tanggal pengeluaran tidak valid!' };
@@ -251,8 +245,10 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
     ];
 
     const updatedAttachments: { id?: string, type: AttachmentType, fileUrl: string }[] = [];
+    
+    // [BARU] Siapkan array penampung URL sampah untuk Vercel Blob
+    const oldBlobUrlsToDelete: string[] = []; 
 
-    // Pertahankan attachment lama yang tidak di-replace
     const oldAttachmentsMap = new Map(existingExpense.attachments.map(a => [a.type, a]));
 
     for (const item of fileKeys) {
@@ -265,17 +261,21 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
         const newUrl = await uploadFile(file, item.folder);
         if (!newUrl) return { success: false, message: `Gagal mengunggah file ${item.key}.` };
 
-        // Cek jika ada attachment lama dari tipe ini
         const oldFile = oldAttachmentsMap.get(item.type);
         if (oldFile) {
           updatedAttachments.push({ id: oldFile.id, type: item.type, fileUrl: newUrl });
+          
+          // [BARU] Jika file lama direplace, tandai URL-nya untuk dihapus
+          if (oldFile.fileUrl.includes('blob.vercel-storage.com')) {
+              oldBlobUrlsToDelete.push(oldFile.fileUrl);
+          }
         } else {
           updatedAttachments.push({ type: item.type, fileUrl: newUrl });
         }
       }
     }
 
-    // 4. Update Database (Atomic Transaction untuk data + hapus file usang)
+    // 4. Update Database (Atomic Transaction untuk data)
     await prisma.$transaction(async (tx) => {
       // Update Teks
       await tx.expense.update({
@@ -284,9 +284,9 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
           categoryId,
           amount: parseFloat(amount),
           description,
+          vehiclePlate: vehiclePlate ? vehiclePlate.trim().toUpperCase() : null, // [TERJAGA] Update Nopol
           kmBefore,
           kmAfter,
-          vehiclePlate,
           expenseDate: new Date(expenseDate),
         }
       });
@@ -306,6 +306,16 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
       }
     });
 
+    // 5. [BARU] Hapus foto lama dari Vercel Blob jika transaksi DB di atas sukses
+    if (oldBlobUrlsToDelete.length > 0) {
+        try {
+            await del(oldBlobUrlsToDelete);
+            console.log('✅ File lama berhasil dihapus dari Vercel Blob:', oldBlobUrlsToDelete.length);
+        } catch (blobErr) {
+            console.error('⚠️ Gagal menghapus file lama dari Vercel Blob:', blobErr);
+        }
+    }
+
     revalidatePath('/submit');
     revalidatePath('/admin');
     return { success: true, message: 'Perubahan laporan berhasil disimpan!' };
@@ -315,4 +325,3 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
     return { success: false, message: 'Terjadi kesalahan internal saat menyimpan perubahan.' };
   }
 }
-
