@@ -6,9 +6,7 @@ import ExportButton from './ExportButton';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ReportPage({
-    searchParams,
-}: {
+export default async function ReportPage(props: {
     searchParams: Promise<{ startDate?: string; endDate?: string; status?: string }>;
 }) {
     const session = await getSession();
@@ -23,7 +21,7 @@ export default async function ReportPage({
         redirect('/');
     }
 
-    const resolvedParams = await searchParams;
+    const resolvedParams = await props.searchParams;
     const startDateStr = resolvedParams?.startDate;
     const endDateStr = resolvedParams?.endDate;
     const statusParam = resolvedParams?.status || 'APPROVED';
@@ -71,7 +69,8 @@ export default async function ReportPage({
     const expenses = await prisma.expense.findMany({
         where: whereClause,
         include: {
-            user: { select: { name: true, nik: true } },
+            // [PERBAIKAN] Tambahkan phone: true agar nomor HP bisa diambil
+            user: { select: { name: true, nik: true, phone: true } },
             category: { select: { name: true } },
         },
         orderBy: { expenseDate: 'asc' }
@@ -126,52 +125,83 @@ export default async function ReportPage({
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm whitespace-nowrap">
-                        <thead className="bg-slate-900/50 text-slate-400 text-xs uppercase tracking-wider">
+                    {/* [PERBAIKAN] whitespace-nowrap dihapus agar deskripsi bisa membungkus ke bawah (wrap) */}
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-900/50 text-slate-400 text-[10px] uppercase tracking-wider">
                             <tr>
-                                <th className="px-5 py-4 font-bold">Tanggal</th>
+                                <th className="px-5 py-4 font-bold whitespace-nowrap">Tanggal</th>
                                 <th className="px-5 py-4 font-bold">Teknisi</th>
-                                <th className="px-5 py-4 font-bold">Kategori</th>
-                                <th className="px-5 py-4 font-bold">Keterangan</th>
-                                <th className="px-5 py-4 font-bold">Status</th>
-                                <th className="px-5 py-4 font-bold text-right">Nominal</th>
+                                <th className="px-5 py-4 font-bold">Deskripsi Pekerjaan</th>
+                                <th className="px-5 py-4 font-bold">Kendaraan</th>
+                                <th className="px-5 py-4 font-bold text-right">Status & Nominal</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-700/50">
                             {expenses.length > 0 ? (
                                 expenses.map((expense) => (
                                     <tr key={expense.id} className="hover:bg-slate-700/30 transition-colors">
-                                        <td className="px-5 py-4 font-medium text-slate-300">
+                                        
+                                        {/* KOLOM 1: TANGGAL */}
+                                        <td className="px-5 py-4 font-bold text-slate-300 whitespace-nowrap align-top">
                                             {formatDate(expense.expenseDate)}
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <p className="font-bold text-white">{expense.user.name}</p>
-                                            <p className="text-xs text-slate-500">{expense.user.nik || '-'}</p>
+                                        
+                                        {/* KOLOM 2: TEKNISI DITUMPUK */}
+                                        <td className="px-5 py-4 align-top">
+                                            <p className="font-bold text-white whitespace-nowrap">{expense.user.name}</p>
+                                            <div className="flex flex-col text-[10px] text-slate-400 mt-0.5">
+                                                <span>NIK: {expense.user.nik || '-'}</span>
+                                                <span>No. HP: {expense.user.phone || '-'}</span>
+                                            </div>
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-900 border border-slate-700 text-slate-300">
-                                                {expense.category.name}
-                                            </span>
+                                        
+                                        {/* KOLOM 3: KATEGORI & KETERANGAN DITUMPUK */}
+                                        <td className="px-5 py-4 align-top max-w-[250px]">
+                                            <div className="flex flex-col items-start gap-1.5">
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded border border-slate-700 text-[9px] font-black tracking-wider uppercase bg-slate-900 text-slate-300 whitespace-nowrap">
+                                                    {expense.category.name}
+                                                </span>
+                                                <p className="text-xs text-slate-400 leading-relaxed break-words">
+                                                    {expense.description || '-'}
+                                                </p>
+                                            </div>
                                         </td>
-                                        <td className="px-5 py-4">
-                                            <p className="text-slate-400 max-w-[200px] truncate" title={expense.description || '-'}>
-                                                {expense.description || '-'}
-                                            </p>
+                                        
+                                        {/* KOLOM 4: PLAT & KM DITUMPUK */}
+                                        <td className="px-5 py-4 align-top whitespace-nowrap">
+                                            <div className="flex flex-col gap-1">
+                                                {expense.vehiclePlate ? (
+                                                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 w-max">
+                                                        🚗 {expense.vehiclePlate}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] text-slate-600">-</span>
+                                                )}
+                                                <span className="text-[10px] font-semibold text-slate-400 mt-0.5">
+                                                    KM: {expense.kmBefore ?? '-'} ➔ {expense.kmAfter ?? '-'}
+                                                </span>
+                                            </div>
                                         </td>
-                                        <td className="px-5 py-4">
-                                            {expense.status === 'PAID' && <span className="text-emerald-400 font-bold text-xs bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">PAID</span>}
-                                            {expense.status === 'APPROVED' && <span className="text-blue-400 font-bold text-xs bg-blue-500/10 px-2.5 py-1 rounded-full border border-blue-500/20">APPROVED</span>}
-                                            {expense.status === 'PENDING' && <span className="text-amber-400 font-bold text-xs bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">PENDING</span>}
-                                            {expense.status === 'REJECTED' && <span className="text-rose-400 font-bold text-xs bg-rose-500/10 px-2.5 py-1 rounded-full border border-rose-500/20">REJECTED</span>}
-                                        </td>
-                                        <td className="px-5 py-4 text-right font-black text-white">
-                                            {formatRupiah(Number(expense.amount))}
+                                        
+                                        {/* KOLOM 5: STATUS & NOMINAL DITUMPUK */}
+                                        <td className="px-5 py-4 text-right align-top whitespace-nowrap">
+                                            <div className="flex flex-col items-end gap-1.5">
+                                                <p className="text-base font-black text-emerald-400 tracking-tight">
+                                                    {formatRupiah(Number(expense.amount))}
+                                                </p>
+                                                
+                                                {expense.status === 'PAID' && <span className="text-emerald-400 font-bold text-[9px] uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">PAID</span>}
+                                                {expense.status === 'APPROVED' && <span className="text-blue-400 font-bold text-[9px] uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">APPROVED</span>}
+                                                {expense.status === 'PENDING' && <span className="text-amber-400 font-bold text-[9px] uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">PENDING</span>}
+                                                {expense.status === 'REJECTED' && <span className="text-rose-400 font-bold text-[9px] uppercase tracking-widest bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">REJECTED</span>}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-5 py-12 text-center text-slate-500">
+                                    {/* Sesuaikan colSpan dari 7 menjadi 5 */}
+                                    <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center gap-2">
                                             <span className="text-4xl">📭</span>
                                             <p className="font-medium">Tidak ada data di rentang waktu dan status ini.</p>

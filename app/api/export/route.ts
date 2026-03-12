@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
-    const statusParam = searchParams.get('status'); // e.g., 'APPROVED'
+    const statusParam = searchParams.get('status'); 
 
     let startDate: Date;
     let endDate: Date;
@@ -31,18 +31,15 @@ export async function GET(req: NextRequest) {
       startDate = new Date(`${startDateParam}T00:00:00+07:00`);
       endDate = new Date(`${endDateParam}T23:59:59+07:00`);
     } else {
-      // Sama seperti dashboard, default bulan ini jika tidak ada params
       const nowStr = new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" });
       const currentDateWIB = new Date(nowStr);
       const year = currentDateWIB.getFullYear();
       const monthIndex = currentDateWIB.getMonth();
 
-      // 🔥 KUNCI ZONA WAKTU WIB (UTC+7) AGAR DATA SINKRON DENGAN DASHBOARD
       startDate = new Date(Date.UTC(year, monthIndex, 1, -7, 0, 0, 0));
       endDate = new Date(Date.UTC(year, monthIndex + 1, 0, 23 - 7, 59, 59, 999));
     }
 
-    // Filter query utama
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const whereClause: any = {
       expenseDate: {
@@ -51,9 +48,7 @@ export async function GET(req: NextRequest) {
       },
     };
 
-    // Filter berdasarkan status dari parameter url
     if (statusParam && statusParam !== 'ALL') {
-      // Bisa dipisah dengan koma jika multi status, e.g status=APPROVED,PAID
       const statuses = statusParam.split(',');
       if (statuses.length === 1) {
         whereClause.status = statuses[0];
@@ -66,15 +61,15 @@ export async function GET(req: NextRequest) {
     const expenses = await prisma.expense.findMany({
       where: whereClause,
       include: {
-        user: true, // Untuk ambil nama teknisi
-        category: true, // Untuk ambil nama kategori
-        approver: true, // Untuk ambil nama admin yang menyetujui
+        user: true, 
+        category: true, 
+        approver: true, 
         attachments: {
           where: { type: 'RECEIPT' }
         }
       },
       orderBy: {
-        expenseDate: 'asc', // Urutkan berdasarkan tanggal kejadian
+        expenseDate: 'asc', 
       },
     });
 
@@ -82,7 +77,7 @@ export async function GET(req: NextRequest) {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Laporan Pengeluaran');
 
-    // Setup Header Kolom
+    // Setup Header Kolom (Menambahkan Plat Kendaraan)
     sheet.columns = [
       { header: 'No', key: 'no', width: 5 },
       { header: 'Tanggal', key: 'date', width: 15 },
@@ -92,6 +87,7 @@ export async function GET(req: NextRequest) {
       { header: 'No. HP', key: 'phone', width: 15 },
       { header: 'Kategori', key: 'category', width: 20 },
       { header: 'Keterangan / No Tiket', key: 'description', width: 40 },
+      { header: 'Plat Kendaraan', key: 'vehiclePlate', width: 18 }, // [BARU] Tambahan Kolom Plat
       { header: 'KM Sebelum', key: 'kmBefore', width: 15 },
       { header: 'KM Sesudah', key: 'kmAfter', width: 15 },
       { header: 'Nominal (Rp)', key: 'amount', width: 20 },
@@ -100,18 +96,17 @@ export async function GET(req: NextRequest) {
       { header: 'Link Bukti (Struk)', key: 'receipt_url', width: 45 },
     ];
 
-    // Styling Header (Bold & Background)
+    // Styling Header
     sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     sheet.getRow(1).fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF4F46E5' }, // Warna Indigo (sesuai tema app)
+      fgColor: { argb: 'FF4F46E5' }, 
     };
 
     // 5. ISI DATA BARIS PER BARIS
     expenses.forEach((item, index) => {
 
-      // Format Tanggal ke WIB (DD/MM/YYYY HH:mm WIB)
       const dateObj = new Date(item.expenseDate);
       const day = dateObj.toLocaleString('en-GB', { day: '2-digit', timeZone: 'Asia/Jakarta' });
       const month = dateObj.toLocaleString('en-GB', { month: '2-digit', timeZone: 'Asia/Jakarta' });
@@ -119,7 +114,6 @@ export async function GET(req: NextRequest) {
       const time = dateObj.toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
       const formattedDate = `${day}/${month}/${yearStr} ${time} WIB`;
 
-      // Ambil receipt URL jika ada
       const receiptUrl = item.attachments.length > 0 ? item.attachments[0].fileUrl : '-';
 
       const row = sheet.addRow({
@@ -131,6 +125,7 @@ export async function GET(req: NextRequest) {
         phone: item.user?.phone || '-',
         category: item.category?.name || '-',
         description: item.description || '-',
+        vehiclePlate: item.vehiclePlate || '-', // [BARU] Isi data Plat Kendaraan
         kmBefore: item.kmBefore ?? '-',
         kmAfter: item.kmAfter ?? '-',
         amount: Number(item.amount),
@@ -139,21 +134,18 @@ export async function GET(req: NextRequest) {
         receipt_url: receiptUrl
       });
 
-      // Format Rupiah di Excel
       row.getCell('amount').numFmt = '"Rp" #,##0';
 
-      // Pewarnaan Status
       const statusCell = row.getCell('status');
       if (item.status === 'PAID') {
-        statusCell.font = { color: { argb: 'FF10B981' }, bold: true }; // Emerald
+        statusCell.font = { color: { argb: 'FF10B981' }, bold: true }; 
       } else if (item.status === 'PENDING') {
-        statusCell.font = { color: { argb: 'FFF59E0B' }, bold: true }; // Amber
+        statusCell.font = { color: { argb: 'FFF59E0B' }, bold: true }; 
       } else if (item.status === 'REJECTED') {
-        statusCell.font = { color: { argb: 'FFEF4444' }, bold: true }; // Red
+        statusCell.font = { color: { argb: 'FFEF4444' }, bold: true }; 
       }
     });
 
-    // Hitung Total
     const totalRow = sheet.addRow({
       description: 'TOTAL PENGELUARAN:',
       amount: expenses.reduce((sum, item) => sum + Number(item.amount), 0),
@@ -161,10 +153,7 @@ export async function GET(req: NextRequest) {
     totalRow.font = { bold: true };
     totalRow.getCell('amount').numFmt = '"Rp" #,##0';
 
-    // 6. GENERATE FILE BUFFER
     const buffer = await workbook.xlsx.writeBuffer();
-
-    // 7. RETURN RESPONSE DOWNLOAD
     const formatDateForFile = (d: Date) => d.toLocaleDateString('id-ID', { year: '2-digit', month: '2-digit', day: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\//g, '');
     const fileName = `Laporan-OpsClaim-${formatDateForFile(startDate)}-${formatDateForFile(endDate)}.xlsx`;
 
