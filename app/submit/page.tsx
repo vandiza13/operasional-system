@@ -95,7 +95,11 @@ export default function SubmitPage() {
     if (compressedEvidence[1]) formData.append('evidence2', compressedEvidence[1]);
     if (compressedEvidence[2]) formData.append('evidence3', compressedEvidence[2]);
 
+    console.log('Starting submission...');
+    const startTime = Date.now();
     const result = await submitReimbursement(formData);
+    const endTime = Date.now();
+    console.log(`Submission finished in ${(endTime - startTime) / 1000}s`);
 
     setMessage(result.message);
     setLoading(false);
@@ -116,7 +120,7 @@ export default function SubmitPage() {
   const formatRp = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 
   // Kompresi Gambar Client-Side
-  const compressImage = async (file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<File> => {
+  const compressImage = async (file: File, maxWidth: number = 800, quality: number = 0.5): Promise<File> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -619,7 +623,7 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
   }, [claimId]);
 
   // Image Compressor Sama dengan Utama
-  const compressImage = async (file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<File> => {
+  const compressImage = async (file: File, maxWidth: number = 800, quality: number = 0.5): Promise<File> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
