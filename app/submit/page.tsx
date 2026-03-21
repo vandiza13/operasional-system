@@ -8,6 +8,7 @@ import { getAllCategories } from '@/app/actions/categories';
 import LogoutButton from '@/app/components/LogoutButton';
 import VandizaBrand from '@/app/components/VandizaBrand';
 import Link from 'next/link';
+import { upload } from '@vercel/blob/client';
 
 
 type Category = { id: string, name: string };
@@ -74,46 +75,86 @@ export default function SubmitPage() {
     setLoading(true);
     setMessage('');
 
-    const formData = new FormData();
-    const form = e.currentTarget;
-    formData.append('amount', (form.elements.namedItem('amount') as HTMLInputElement).value);
-    formData.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
-    formData.append('categoryId', (form.elements.namedItem('categoryId') as HTMLSelectElement).value);
-    formData.append('expenseDate', (form.elements.namedItem('expenseDate') as HTMLInputElement).value);
+    try {
+      const form = e.currentTarget;
 
-    const kmBeforeEl = form.elements.namedItem('kmBefore') as HTMLInputElement;
-    if (kmBeforeEl && kmBeforeEl.value) formData.append('kmBefore', kmBeforeEl.value);
+      // 1. Validasi Kehadiran File Wajib
+      if (!compressedReceipt || !compressedEvidence[0] || !compressedEvidence[1]) {
+        throw new Error("Mohon lengkapi Foto Struk dan minimal 2 Bukti Lapangan wajib.");
+      }
 
-    const kmAfterEl = form.elements.namedItem('kmAfter') as HTMLInputElement;
-    if (kmAfterEl && kmAfterEl.value) formData.append('kmAfter', kmAfterEl.value);
+      setMessage('Mengunggah foto ke server... ⏳');
 
-    const vehiclePlateEl = form.elements.namedItem('vehiclePlate') as HTMLInputElement;
-    if (vehiclePlateEl && vehiclePlateEl.value) formData.append('vehiclePlate', vehiclePlateEl.value);
+      // 2. Fungsi bantuan untuk upload langsung ke Blob
+      const uploadToBlob = async (file: File, prefix: string) => {
+        const safeName = `${prefix}-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+        const newBlob = await upload(safeName, file, {
+          access: 'public',
+          handleUploadUrl: '/api/upload', // Otorisasi API yang kita buat sebelumnya
+        });
+        return newBlob.url;
+      };
 
-    if (compressedReceipt) formData.append('receipt', compressedReceipt);
-    if (compressedEvidence[0]) formData.append('evidence1', compressedEvidence[0]);
-    if (compressedEvidence[1]) formData.append('evidence2', compressedEvidence[1]);
-    if (compressedEvidence[2]) formData.append('evidence3', compressedEvidence[2]);
+      // 3. Upload File Secara Paralel
+      const uploadPromises = [
+        uploadToBlob(compressedReceipt, 'receipt'),
+        uploadToBlob(compressedEvidence[0], 'ev1'),
+        uploadToBlob(compressedEvidence[1], 'ev2')
+      ];
 
-    console.log('Starting submission...');
-    const startTime = Date.now();
-    const result = await submitReimbursement(formData);
-    const endTime = Date.now();
-    console.log(`Submission finished in ${(endTime - startTime) / 1000}s`);
+      // Jika ada eviden ke-3 (opsional)
+      if (compressedEvidence[2]) {
+        uploadPromises.push(uploadToBlob(compressedEvidence[2], 'ev3'));
+      }
 
-    setMessage(result.message);
-    setLoading(false);
+      const urls = await Promise.all(uploadPromises);
 
-    if (result.success) {
-      formRef.current?.reset();
-      setReceiptFile(null);
-      setEvidenceFiles([null, null, null]);
-      setCompressedReceipt(null);
-      setCompressedEvidence([null, null, null]);
+      setMessage('Menyimpan data laporan... 💾');
 
-      // Berpindah otomatis ke tab statistik setelah sukses submit
-      setActiveTab('stats');
-      getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
+      // 4. Siapkan Data untuk Server Action (HANYA MENGIRIM TEKS)
+      const formData = new FormData();
+      formData.append('amount', (form.elements.namedItem('amount') as HTMLInputElement).value);
+      formData.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
+      formData.append('categoryId', (form.elements.namedItem('categoryId') as HTMLSelectElement).value);
+      formData.append('expenseDate', (form.elements.namedItem('expenseDate') as HTMLInputElement).value);
+
+      const kmBeforeEl = form.elements.namedItem('kmBefore') as HTMLInputElement;
+      if (kmBeforeEl && kmBeforeEl.value) formData.append('kmBefore', kmBeforeEl.value);
+
+      const kmAfterEl = form.elements.namedItem('kmAfter') as HTMLInputElement;
+      if (kmAfterEl && kmAfterEl.value) formData.append('kmAfter', kmAfterEl.value);
+
+      const vehiclePlateEl = form.elements.namedItem('vehiclePlate') as HTMLInputElement;
+      if (vehiclePlateEl && vehiclePlateEl.value) formData.append('vehiclePlate', vehiclePlateEl.value);
+
+      // SINKRONISASI DATA: Kirim URL yang didapat dari Blob
+      formData.append('receiptUrl', urls[0]);
+      formData.append('evidence1Url', urls[1]);
+      formData.append('evidence2Url', urls[2]);
+      if (urls[3]) formData.append('evidence3Url', urls[3]);
+
+      // 5. Eksekusi Server Action
+      const result = await submitReimbursement(formData);
+
+      setMessage(result.message);
+
+      if (result.success) {
+        formRef.current?.reset();
+        setReceiptFile(null);
+        setEvidenceFiles([null, null, null]);
+        setCompressedReceipt(null);
+        setCompressedEvidence([null, null, null]);
+
+        // Pindah otomatis ke tab statistik
+        setActiveTab('stats');
+        getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
+      }
+
+    } catch (error: any) {
+      console.error("Submit Error:", error);
+      setMessage(error.message || '⚠️ Gagal mengirim laporan. Pastikan koneksi stabil.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -677,25 +718,63 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
     setSubmitting(true);
     setErrorMsg('');
 
-    const payload = new FormData();
-    payload.append('amount', formData.amount);
-    payload.append('description', formData.description);
-    payload.append('categoryId', formData.categoryId);
-    payload.append('expenseDate', formData.expenseDate);
-    if (formData.kmBefore) payload.append('kmBefore', formData.kmBefore);
-    if (formData.kmAfter) payload.append('kmAfter', formData.kmAfter);
-    if (formData.vehiclePlate) payload.append('vehiclePlate', formData.vehiclePlate);
+    try {
+      // 1. Fungsi bantuan untuk upload
+      const uploadToBlob = async (file: File, prefix: string) => {
+        const safeName = `${prefix}-edit-${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+        const newBlob = await upload(safeName, file, {
+          access: 'public',
+          handleUploadUrl: '/api/upload',
+        });
+        return newBlob.url;
+      };
 
-    if (compressedReceipt) payload.append('receipt', compressedReceipt);
-    if (compressedEvidence[0]) payload.append('evidence1', compressedEvidence[0]);
-    if (compressedEvidence[1]) payload.append('evidence2', compressedEvidence[1]);
-    if (compressedEvidence[2]) payload.append('evidence3', compressedEvidence[2]);
+      const payload = new FormData();
+      payload.append('amount', formData.amount);
+      payload.append('description', formData.description);
+      payload.append('categoryId', formData.categoryId);
+      payload.append('expenseDate', formData.expenseDate);
+      if (formData.kmBefore) payload.append('kmBefore', formData.kmBefore);
+      if (formData.kmAfter) payload.append('kmAfter', formData.kmAfter);
+      if (formData.vehiclePlate) payload.append('vehiclePlate', formData.vehiclePlate);
 
-    const result = await updateReimbursement(claimId, payload);
-    if (result.success) {
-      onSuccess();
-    } else {
-      setErrorMsg(result.message);
+      // 2. Cek apakah ada file baru yang diunggah? Jika ada, upload dulu ke Blob
+      if (compressedReceipt || compressedEvidence.some(file => file !== null)) {
+         setErrorMsg('Mengunggah pembaruan foto... ⏳');
+      }
+
+      if (compressedReceipt) {
+        const url = await uploadToBlob(compressedReceipt, 'receipt');
+        payload.append('receiptUrl', url);
+      }
+      if (compressedEvidence[0]) {
+        const url = await uploadToBlob(compressedEvidence[0], 'ev1');
+        payload.append('evidence1Url', url);
+      }
+      if (compressedEvidence[1]) {
+        const url = await uploadToBlob(compressedEvidence[1], 'ev2');
+        payload.append('evidence2Url', url);
+      }
+      if (compressedEvidence[2]) {
+        const url = await uploadToBlob(compressedEvidence[2], 'ev3');
+        payload.append('evidence3Url', url);
+      }
+
+      setErrorMsg('');
+
+      // 3. Kirim teks URL ke Server Action
+      const result = await updateReimbursement(claimId, payload);
+      
+      if (result.success) {
+        onSuccess();
+      } else {
+        setErrorMsg(result.message);
+      }
+      
+    } catch (error: any) {
+      console.error('Update Claim Error:', error);
+      setErrorMsg(error.message || '⚠️ Gagal menyimpan pembaruan. Pastikan koneksi stabil.');
+    } finally {
       setSubmitting(false);
     }
   };
