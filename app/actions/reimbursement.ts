@@ -1,11 +1,11 @@
-'use server'
+﻿'use server'
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { put, del } from '@vercel/blob'; // [BARU] Import del untuk menghapus sampah file
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 import { AttachmentType } from '@prisma/client';
 
 // Fungsi bantuan untuk mengunggah file
@@ -28,7 +28,7 @@ async function uploadFile(file: File | null, folderName: string): Promise<string
 
   // 2. Jika di Vercel tapi tidak ada token
   if (isVercelEnvironment) {
-    throw new Error(`⚠️ File upload requires BLOB_READ_WRITE_TOKEN in Vercel environment.`);
+    throw new Error(`âš ï¸ File upload requires BLOB_READ_WRITE_TOKEN in Vercel environment.`);
   }
 
   // 3. Fallback: Local storage
@@ -72,7 +72,7 @@ export async function submitReimbursement(formData: FormData) {
     if (!categoryId) return { success: false, message: 'Kategori wajib dipilih!' };
 
     // 2. CEK SESI USER
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || !session.userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
     const userId = session.userId;
 
@@ -130,7 +130,7 @@ export async function submitReimbursement(formData: FormData) {
 // ============================================================================
 export async function getClaimForEdit(expenseId: string) {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || !session.userId) return { success: false, message: 'Sesi habis.' };
     const userId = session.userId;
 
@@ -162,7 +162,7 @@ export async function getClaimForEdit(expenseId: string) {
 // ============================================================================
 export async function updateReimbursement(expenseId: string, formData: FormData) {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || !session.userId) return { success: false, message: 'Sesi habis! Silakan login kembali.' };
     const userId = session.userId;
 
@@ -251,9 +251,9 @@ export async function updateReimbursement(expenseId: string, formData: FormData)
     if (oldBlobUrlsToDelete.length > 0) {
       try {
         await del(oldBlobUrlsToDelete);
-        console.log('✅ File lama berhasil dihapus dari Vercel Blob:', oldBlobUrlsToDelete.length);
+        console.log('âœ… File lama berhasil dihapus dari Vercel Blob:', oldBlobUrlsToDelete.length);
       } catch (blobErr) {
-        console.error('⚠️ Gagal menghapus file lama dari Vercel Blob:', blobErr);
+        console.error('âš ï¸ Gagal menghapus file lama dari Vercel Blob:', blobErr);
       }
     }
 

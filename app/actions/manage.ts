@@ -2,7 +2,7 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 import { del } from '@vercel/blob';
 
 /**
@@ -10,20 +10,10 @@ import { del } from '@vercel/blob';
  */
 async function verifySuperAdmin() {
     try {
-        const session = await getSession();
-        if (!session || !session.userId) return null;
-        const userId = session.userId;
+        const session = await getVerifiedSession();
+        if (!session || session.userRole !== 'SUPER_ADMIN') return null;
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, role: true }
-        });
-
-        if (!user || user.role !== 'SUPER_ADMIN') {
-            return null;
-        }
-
-        return user;
+        return { id: session.userId, role: session.userRole };
     } catch (error) {
         return null;
     }
@@ -69,9 +59,9 @@ export async function deleteExpensePermanent(expenseId: string) {
             if (blobUrlsToDelete.length > 0) {
                 try {
                     await del(blobUrlsToDelete);
-                    console.log('✅ Berhasil menyapu bersih file sampah dari Vercel Blob:', blobUrlsToDelete.length, 'file');
+                    console.log('âœ… Berhasil menyapu bersih file sampah dari Vercel Blob:', blobUrlsToDelete.length, 'file');
                 } catch (blobErr) {
-                    console.error('⚠️ Peringatan: Gagal menghapus file dari Vercel Blob (mungkin sudah terhapus):', blobErr);
+                    console.error('âš ï¸ Peringatan: Gagal menghapus file dari Vercel Blob (mungkin sudah terhapus):', blobErr);
                     // Kita tidak me-return error ke user karena data di DB sudah berhasil dihapus
                 }
             }

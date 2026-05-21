@@ -6,7 +6,7 @@ import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import { ExpenseStatus, TransactionType } from '@prisma/client';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 // ============================================================================
 // 1. FUNGSI PERSETUJUAN (VERIFIKASI SATU PER SATU)
@@ -17,7 +17,7 @@ export async function approveReimbursement(formData: FormData) {
   const newAmount = formData.get('amount') as string;
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -45,7 +45,7 @@ export async function rejectReimbursement(formData: FormData) {
   const reason = formData.get('reason') as string;
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -99,21 +99,22 @@ export async function topUpLedger(formData: FormData) {
     const amount = parseFloat(amountStr);
     if (!amount || amount <= 0) return { success: false, message: 'Nominal tidak valid!' };
 
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
     const adminId = session.userId;
 
-    // 🔥 VALIDASI: Pastikan Admin benar-benar ada di Database
+    // ðŸ”¥ VALIDASI: Pastikan Admin benar-benar ada di Database
     const adminUser = await prisma.user.findUnique({ where: { id: adminId } });
     if (!adminUser) {
       return { success: false, message: 'Akun Admin tidak valid. Mohon logout dan login ulang.' };
     }
 
     await prisma.$transaction(async (tx) => {
-      const lastLedger = await tx.operationalLedger.findFirst({ orderBy: { createdAt: 'desc' } });
-      const currentBalance = lastLedger ? Number(lastLedger.balance) : 0;
+      // P0: Gunakan SELECT FOR UPDATE untuk mencegah Race Condition saat Top Up
+      const lastLedgers = await tx.$queryRaw<{balance: any}[]>`SELECT balance FROM OperationalLedger ORDER BY createdAt DESC LIMIT 1 FOR UPDATE`;
+      const currentBalance = lastLedgers.length > 0 ? Number(lastLedgers[0].balance) : 0;
       const newBalance = currentBalance + amount;
 
       await tx.operationalLedger.create({
@@ -131,7 +132,7 @@ export async function topUpLedger(formData: FormData) {
     return { success: true, message: `Saldo berhasil ditambah: Rp ${amount.toLocaleString('id-ID')}` };
   } catch (error: any) {
     console.error('Failed to Top-Up:', error);
-    return { success: false, message: 'Gagal menambah saldo' };
+    return { success: false, message: 'Gagal menambah saldo. Terjadi kesalahan sistem.' };
   }
 }
 
@@ -140,7 +141,7 @@ export async function payoutTechnician(formData: FormData) {
   const expenseIdsStr = formData.get('expenseIds') as string;
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -155,15 +156,21 @@ export async function payoutTechnician(formData: FormData) {
       return { success: false, message: 'Akun Admin tidak valid/dihapus. Mohon logout dan login ulang.' };
     }
 
-    // [BARU] Parsing string JSON menjadi Array ID
+    // P1: Validasi tipe input strict
     let expenseIds: string[] = [];
     try {
-        if (expenseIdsStr) expenseIds = JSON.parse(expenseIdsStr);
+        if (expenseIdsStr) {
+            const parsed = JSON.parse(expenseIdsStr);
+            if (!Array.isArray(parsed)) throw new Error("Invalid type");
+            // Validasi tambahan agar elemen array hanya string
+            if (!parsed.every(id => typeof id === 'string')) throw new Error("Invalid array items");
+            expenseIds = parsed;
+        }
     } catch (e) {
         return { success: false, message: 'Data pemilihan bon tidak valid.' };
     }
 
-    if (!expenseIds || expenseIds.length === 0) {
+    if (expenseIds.length === 0) {
         return { success: false, message: 'Minimal pilih 1 bon untuk dicairkan.' };
     }
 
@@ -173,7 +180,7 @@ export async function payoutTechnician(formData: FormData) {
         where: { 
             userId: technicianId, 
             status: ExpenseStatus.APPROVED,
-            id: { in: expenseIds } // 🔥 Filter Ajaib
+            id: { in: expenseIds } // ðŸ”¥ Filter Ajaib
         }
       });
 
@@ -184,9 +191,9 @@ export async function payoutTechnician(formData: FormData) {
       // b. Hitung total dari bon yang dipilih
       const totalPayout = approvedExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
-      // c. Cek Saldo
-      const lastLedger = await tx.operationalLedger.findFirst({ orderBy: { createdAt: 'desc' } });
-      const currentBalance = lastLedger ? Number(lastLedger.balance) : 0;
+      // P0: Gunakan SELECT FOR UPDATE untuk mencegah Race Condition Pencairan
+      const lastLedgers = await tx.$queryRaw<{balance: any}[]>`SELECT balance FROM OperationalLedger ORDER BY createdAt DESC LIMIT 1 FOR UPDATE`;
+      const currentBalance = lastLedgers.length > 0 ? Number(lastLedgers[0].balance) : 0;
 
       if (currentBalance < totalPayout) {
         throw new Error(`Saldo Operasional tidak cukup! (Sisa: Rp ${currentBalance.toLocaleString('id-ID')})`);
@@ -234,7 +241,11 @@ export async function payoutTechnician(formData: FormData) {
 
   } catch (error: any) {
     console.error('Failed to Payout:', error);
-    return { success: false, message: error.message || 'Sistem gagal memproses pencairan' };
+    // P2: Sanitasi error response
+    const errorMessage = error instanceof Error && error.message.includes('Saldo Operasional tidak cukup') 
+      ? error.message 
+      : 'Sistem gagal memproses pencairan. Terjadi kesalahan internal.';
+    return { success: false, message: errorMessage };
   }
 }
 
@@ -255,7 +266,7 @@ export async function createTechnician(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -294,7 +305,7 @@ export async function editTechnician(formData: FormData) {
   if (!id || !name || !email) return { success: false, message: 'Incomplete data' };
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -326,7 +337,7 @@ export async function resetTechnicianPassword(formData: FormData) {
   if (!id || !newPassword || newPassword.length < 6) return { success: false, message: 'New password must be at least 6 characters' };
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }

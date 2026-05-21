@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { Role } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 const secretKey = process.env.SESSION_SECRET || 'fallback_secret_for_development_only_please_change';
 const key = new TextEncoder().encode(secretKey);
@@ -54,4 +55,27 @@ export async function getSession() {
     const session = cookieStore.get('session')?.value;
     if (!session) return null;
     return await decrypt(session);
+}
+
+export async function getVerifiedSession() {
+    const session = await getSession();
+    if (!session || !session.userId) return null;
+
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { id: true, role: true }
+        });
+
+        if (!user) return null;
+
+        return {
+            userId: user.id,
+            userName: session.userName,
+            userRole: user.role
+        };
+    } catch (error) {
+        console.error('Verified Session Error:', error);
+        return null;
+    }
 }

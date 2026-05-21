@@ -1,9 +1,9 @@
-'use server';
+﻿'use server';
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 // Protected accounts that cannot be deleted - loaded from environment variables
 const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
@@ -14,7 +14,7 @@ const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
  */
 export async function getAllUsers() {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -146,7 +146,7 @@ export async function resetAndReseedUsers() {
  */
 export async function getCurrentUser() {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || !session.userId) return null;
     const userId = session.userId;
 
@@ -184,7 +184,7 @@ export async function editUser(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -225,7 +225,7 @@ export async function resetUserPassword(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -255,7 +255,7 @@ export async function deleteUser(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }

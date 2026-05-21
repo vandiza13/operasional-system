@@ -1,4 +1,4 @@
-'use server'
+﻿'use server'
 
 import prisma from '@/lib/prisma';
 
@@ -40,7 +40,7 @@ export async function checkDatabaseStatus() {
 
 
 /**
- * POST /api/reset - Hapus SEMUA data di database (⚠️ DANGEROUS!)
+ * POST /api/reset - Hapus SEMUA data di database (âš ï¸ DANGEROUS!)
  */
 export async function completeDeleteAllData() {
   try {
@@ -64,7 +64,7 @@ export async function completeDeleteAllData() {
 
     return {
       success: true,
-      message: `✅ Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}\nHapus ledger: ${ledgerCount.count}\nHapus payout: ${payoutCount.count}`,
+      message: `âœ… Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}\nHapus ledger: ${ledgerCount.count}\nHapus payout: ${payoutCount.count}`,
       deletedRecords: {
         users: userCount.count,
         expenses: expenseCount.count,

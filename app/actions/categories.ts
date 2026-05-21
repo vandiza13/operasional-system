@@ -1,12 +1,12 @@
-'use server'
+﻿'use server'
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 export async function getAllCategories() {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session) return { success: false, message: 'Unauthorized access.' };
 
     const categories = await prisma.expenseCategory.findMany({
@@ -34,7 +34,7 @@ export async function getAllCategories() {
  */
 export async function createCategory(formData: FormData) {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -89,7 +89,7 @@ export async function updateCategory(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -135,7 +135,7 @@ export async function toggleCategoryStatus(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }
@@ -177,7 +177,7 @@ export async function deleteCategory(formData: FormData) {
   }
 
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || (session.userRole !== 'ADMIN' && session.userRole !== 'SUPER_ADMIN')) {
       return { success: false, message: 'Unauthorized access.' };
     }

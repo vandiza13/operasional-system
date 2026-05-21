@@ -1,11 +1,11 @@
-'use server'
+﻿'use server'
 
 import prisma from '@/lib/prisma';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 export async function getTechnicianStats(month?: string) {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || !session.userId) return null;
     const userId = session.userId;
 
@@ -94,7 +94,7 @@ export interface ClaimHistory {
 
 export async function getTechnicianClaims(month?: string): Promise<ClaimHistory[] | null> {
   try {
-    const session = await getSession();
+    const session = await getVerifiedSession();
     if (!session || !session.userId) return null;
     const userId = session.userId;
 

@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
+import RegisterSW from './components/RegisterSW';
 
 
 const geistSans = Geist({
@@ -14,16 +15,36 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#1e40af',
+};
+
 export const metadata: Metadata = {
-  title: "Sistem Operasional - Manajemen Reimbursement",
+  title: "OPS Reimbursement",
   description: "Platform internal untuk manajemen klaim biaya operasional dan reimbursement karyawan",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'OPS Reimbursement',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="id">
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <RegisterSW />
         <Toaster position="top-right" /> {/* [BARU] Notifikasi muncul di kanan atas */}
         {children}
       </body>

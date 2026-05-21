@@ -2,27 +2,17 @@
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 /**
  * Validasi Role Super Admin
  */
 async function verifySuperAdmin() {
     try {
-        const session = await getSession();
-        if (!session || !session.userId) return null;
-        const userId = session.userId;
+        const session = await getVerifiedSession();
+        if (!session || session.userRole !== 'SUPER_ADMIN') return null;
 
-        const user = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { id: true, role: true }
-        });
-
-        if (!user || user.role !== 'SUPER_ADMIN') {
-            return null;
-        }
-
-        return user;
+        return { id: session.userId, role: session.userRole };
     } catch (error) {
         return null;
     }

@@ -1,16 +1,16 @@
-'use server';
+﻿'use server';
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 // Pengecekan keamanan akun yang dilindungi
 const PROTECTED_EMAILS = process.env.PROTECTED_ADMIN_EMAILS?.split(',') || [];
 
 export async function updateMyProfile(formData: FormData) {
     try {
-        const session = await getSession();
+        const session = await getVerifiedSession();
         if (!session || !session.userId) {
             return { success: false, message: 'Sesi habis, silakan login kembali.' };
         }
@@ -65,7 +65,7 @@ export async function updateMyProfile(formData: FormData) {
 
 export async function updateMyPassword(formData: FormData) {
     try {
-        const session = await getSession();
+        const session = await getVerifiedSession();
         if (!session || !session.userId) {
             return { success: false, message: 'Sesi habis, silakan login kembali.' };
         }
