@@ -2,21 +2,73 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: '/login',
     name: 'OPS Reimbursement',
     short_name: 'OPS',
     description: 'Platform internal untuk manajemen klaim biaya operasional dan reimbursement karyawan',
     start_url: '/login',
+    scope: '/',
     display: 'standalone',
+    display_override: ['standalone', 'minimal-ui'],
     orientation: 'portrait',
     background_color: '#ffffff',
     theme_color: '#1e40af',
     categories: ['business', 'finance', 'productivity'],
     lang: 'id',
     dir: 'ltr',
+    prefer_related_applications: false,
     icons: [
+      {
+        src: '/icons/icon-48x48.png',
+        sizes: '48x48',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-72x72.png',
+        sizes: '72x72',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-96x96.png',
+        sizes: '96x96',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-128x128.png',
+        sizes: '128x128',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-144x144.png',
+        sizes: '144x144',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-152x152.png',
+        sizes: '152x152',
+        type: 'image/png',
+        purpose: 'any',
+      },
       {
         src: '/icons/icon-192x192.png',
         sizes: '192x192',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-384x384.png',
+        sizes: '384x384',
+        type: 'image/png',
+        purpose: 'any',
+      },
+      {
+        src: '/icons/icon-512x512.png',
+        sizes: '512x512',
         type: 'image/png',
         purpose: 'any',
       },
@@ -25,12 +77,6 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: '192x192',
         type: 'image/png',
         purpose: 'maskable',
-      },
-      {
-        src: '/icons/icon-512x512.png',
-        sizes: '512x512',
-        type: 'image/png',
-        purpose: 'any',
       },
       {
         src: '/icons/icon-512x512.png',
@@ -41,11 +87,44 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     screenshots: [
       {
-        src: '/icons/icon-512x512.png',
-        sizes: '512x512',
+        src: '/screenshots/screenshot-narrow.png',
+        sizes: '750x1334',
         type: 'image/png',
         form_factor: 'narrow',
         label: 'OPS Reimbursement - Login',
+      },
+      {
+        src: '/screenshots/screenshot-wide.png',
+        sizes: '1280x720',
+        type: 'image/png',
+        form_factor: 'wide',
+        label: 'OPS Reimbursement - Dashboard',
+      },
+    ],
+    shortcuts: [
+      {
+        name: 'Submit Reimbursement',
+        short_name: 'Submit',
+        url: '/submit',
+        icons: [
+          {
+            src: '/icons/icon-96x96.png',
+            sizes: '96x96',
+            type: 'image/png',
+          },
+        ],
+      },
+      {
+        name: 'Profile',
+        short_name: 'Profile',
+        url: '/profile',
+        icons: [
+          {
+            src: '/icons/icon-96x96.png',
+            sizes: '96x96',
+            type: 'image/png',
+          },
+        ],
       },
     ],
   }
