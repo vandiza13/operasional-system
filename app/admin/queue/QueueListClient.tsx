@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { payoutTechnician } from '@/app/actions/admin';
 import QueueEvidenceViewer from './QueueEvidenceViewer';
@@ -219,6 +219,30 @@ function QueueCardMobile({ item, index, currentBalance }: { item: any, index: nu
 
 // --- KOMPONEN UTAMA EXPORT ---
 export default function QueueListClient({ payoutsArray, currentBalance }: { payoutsArray: any[], currentBalance: number }) {
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredPayouts = useMemo(() => {
+        if (!searchQuery.trim()) return payoutsArray;
+        const q = searchQuery.toLowerCase();
+        return payoutsArray.filter((item) => {
+            const name = item.technicianName.toLowerCase();
+            const nik = item.technicianNik.toLowerCase();
+            const phone = item.technicianPhone.toLowerCase();
+            const totalAmount = String(item.totalAmount);
+            
+            if (name.includes(q) || nik.includes(q) || phone.includes(q) || totalAmount.includes(q)) {
+                return true;
+            }
+
+            return item.expenses.some((e: any) => {
+                const desc = (e.description || '').toLowerCase();
+                const plate = (e.vehiclePlate || '').toLowerCase();
+                const amt = String(e.amount);
+                return desc.includes(q) || plate.includes(q) || amt.includes(q);
+            });
+        });
+    }, [payoutsArray, searchQuery]);
+
     if (payoutsArray.length === 0) {
         return (
             <div className="p-16 text-center bg-slate-900/50 rounded-3xl border border-slate-800">
@@ -230,31 +254,59 @@ export default function QueueListClient({ payoutsArray, currentBalance }: { payo
     }
 
     return (
-        <>
-            <div className="overflow-x-auto p-2 hidden md:block">
-                <table className="w-full text-left border-collapse">
-                    <thead>
-                        <tr className="text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-700/50">
-                            <th className="p-4 pl-8 w-16">No</th>
-                            <th className="p-4">Identitas Teknisi</th>
-                            <th className="p-4">Pilih Bon Pencairan</th>
-                            <th className="p-4">Total Dicairkan</th>
-                            <th className="p-4 pr-8 text-center min-w-[200px]">Aksi Transfer</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/50">
-                        {payoutsArray.map((item, index) => (
-                            <QueueRowDesktop key={item.technicianId} item={item} index={index} currentBalance={currentBalance} />
-                        ))}
-                    </tbody>
-                </table>
+        <div className="p-4 sm:p-6 space-y-5">
+            {/* COLUMN SEARCH BAR */}
+            <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+                <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari nama teknisi, NIK, deskripsi bon, plat nomor, atau nominal..."
+                    className="w-full pl-11 pr-10 py-3.5 bg-slate-900/60 border border-slate-700/50 rounded-2xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all shadow-inner"
+                />
+                {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-sm">✕</button>
+                )}
             </div>
+            {searchQuery && (
+                <p className="text-xs text-slate-400 font-semibold px-1">Menampilkan {filteredPayouts.length} dari {payoutsArray.length} antrean</p>
+            )}
 
-            <div className="md:hidden flex flex-col gap-4 p-4 mt-2">
-                {payoutsArray.map((item, index) => (
-                    <QueueCardMobile key={item.technicianId} item={item} index={index} currentBalance={currentBalance} />
-                ))}
-            </div>
-        </>
+            {filteredPayouts.length === 0 ? (
+                <div className="p-12 text-center bg-slate-900/20 rounded-2xl border border-dashed border-slate-800">
+                    <div className="text-4xl mb-3 grayscale opacity-30">🔍</div>
+                    <p className="text-slate-400 font-bold text-base">Antrean Tidak Ditemukan</p>
+                    <p className="text-slate-500 text-xs mt-1">Tidak ada data antrean yang cocok dengan pencarian "{searchQuery}"</p>
+                </div>
+            ) : (
+                <>
+                    <div className="overflow-x-auto p-2 hidden md:block">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-slate-400 text-[10px] uppercase tracking-widest font-black border-b border-slate-700/50">
+                                    <th className="p-4 pl-8 w-16">No</th>
+                                    <th className="p-4">Identitas Teknisi</th>
+                                    <th className="p-4">Pilih Bon Pencairan</th>
+                                    <th className="p-4">Total Dicairkan</th>
+                                    <th className="p-4 pr-8 text-center min-w-[200px]">Aksi Transfer</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/50">
+                                {filteredPayouts.map((item, index) => (
+                                    <QueueRowDesktop key={item.technicianId} item={item} index={index} currentBalance={currentBalance} />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="md:hidden flex flex-col gap-4 mt-2">
+                        {filteredPayouts.map((item, index) => (
+                            <QueueCardMobile key={item.technicianId} item={item} index={index} currentBalance={currentBalance} />
+                        ))}
+                    </div>
+                </>
+            )}
+        </div>
     );
 }

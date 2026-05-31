@@ -1,4 +1,4 @@
-﻿'use server'
+'use server'
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
@@ -153,6 +153,37 @@ export async function getClaimForEdit(expenseId: string) {
     return { success: true, expense: serializedExpense };
   } catch (error) {
     console.error('Get Claim Error:', error);
+    return { success: false, message: 'Terjadi kesalahan sistem.' };
+  }
+}
+
+// ============================================================================
+// FUNGSI BARU: AMBIL DETAIL KLAIM UNTUK RIWAYAT
+// ============================================================================
+export async function getClaimDetail(expenseId: string) {
+  try {
+    const session = await getVerifiedSession();
+    if (!session || !session.userId) return { success: false, message: 'Sesi habis.' };
+    const userId = session.userId;
+
+    const expense = await prisma.expense.findUnique({
+      where: { id: expenseId, userId: userId },
+      include: {
+        attachments: true,
+        category: { select: { name: true } }
+      }
+    });
+
+    if (!expense) return { success: false, message: 'Data tidak ditemukan.' };
+
+    const serializedExpense = {
+      ...expense,
+      amount: Number(expense.amount),
+    };
+
+    return { success: true, expense: serializedExpense };
+  } catch (error) {
+    console.error('Get Claim Detail Error:', error);
     return { success: false, message: 'Terjadi kesalahan sistem.' };
   }
 }

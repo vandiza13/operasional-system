@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react';
-import { submitReimbursement, getClaimForEdit, updateReimbursement } from '@/app/actions/reimbursement';
+import { submitReimbursement, getClaimForEdit, updateReimbursement, getClaimDetail } from '@/app/actions/reimbursement';
 import { getTechnicianStats, getTechnicianClaims, ClaimHistory } from '@/app/actions/stats';
 import { getCurrentUser } from '@/app/actions/user';
 import { getAllCategories } from '@/app/actions/categories';
@@ -47,6 +47,9 @@ export default function SubmitPage() {
 
   // [BARU] State untuk Modal Edit Klaim
   const [editingClaimId, setEditingClaimId] = useState<string | null>(null);
+
+  // [BARU] State untuk Detail Modal Klaim (Riwayat)
+  const [selectedClaimId, setSelectedClaimId] = useState<string | null>(null);
 
   useEffect(() => {
     getCurrentUser().then((data) => { if (data) setProfile(data as UserProfile); });
@@ -524,7 +527,8 @@ export default function SubmitPage() {
                     return (
                       <div
                         key={claim.id}
-                        className={`bg-slate-800/50 rounded-2xl border shadow-sm backdrop-blur-sm overflow-hidden ${claim.status === 'REJECTED' ? 'border-rose-500/30' : 'border-slate-700/50'
+                        onClick={() => setSelectedClaimId(claim.id)}
+                        className={`bg-slate-800/50 hover:bg-slate-800/80 hover:border-slate-600 rounded-2xl border shadow-sm backdrop-blur-sm overflow-hidden cursor-pointer transition-all duration-200 ${claim.status === 'REJECTED' ? 'border-rose-500/30 hover:border-rose-500/50' : 'border-slate-700/50'
                           }`}
                       >
                         {/* Header Card */}
@@ -559,7 +563,10 @@ export default function SubmitPage() {
                               </p>
                               {claim.status === 'PENDING' && (
                                 <button
-                                  onClick={() => setEditingClaimId(claim.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingClaimId(claim.id);
+                                  }}
                                   className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-lg border border-indigo-500/20 transition-colors"
                                 >
                                   ✏️ Edit Bon
@@ -610,6 +617,14 @@ export default function SubmitPage() {
             getTechnicianClaims(selectedMonth).then((data) => { if (data) setClaims(data); });
             getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
           }}
+        />
+      )}
+
+      {/* MODAL DETAIL KLAIM */}
+      {selectedClaimId && (
+        <ClaimDetailModal
+          claimId={selectedClaimId}
+          onClose={() => setSelectedClaimId(null)}
         />
       )}
 
@@ -926,6 +941,260 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
         </div>
 
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// KOMPONEN MODAL DETAIL KLAIM UNTUK TEKNISI (RIWAYAT)
+// ============================================================================
+function ClaimDetailModal({ claimId, onClose }: { claimId: string, onClose: () => void }) {
+  const [loading, setLoading] = useState(true);
+  const [claim, setClaim] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [lightboxImg, setLightboxImg] = useState<{ url: string; title: string } | null>(null);
+
+  useEffect(() => {
+    getClaimDetail(claimId).then(res => {
+      if (res.success && res.expense) {
+        setClaim(res.expense);
+      } else {
+        setErrorMsg(res.message || 'Gagal memuat detail laporan');
+      }
+      setLoading(false);
+    });
+  }, [claimId]);
+
+  const formatRp = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+
+  // Parsing alasan penolakan jika ada
+  let rejectionReason = null;
+  if (claim && claim.status === 'REJECTED' && claim.description) {
+    if (claim.description.includes('REJECTED:')) {
+      const match = claim.description.match(/REJECTED:\s*(.+?)(?:\n|$)/);
+      if (match) {
+        rejectionReason = match[1].trim();
+      }
+    }
+  }
+
+  // Bersihkan deskripsi dari string REJECTED: ...
+  const cleanDescription = (desc: string | null) => {
+    if (!desc) return '';
+    return desc.replace(/REJECTED:\s*.+?(\n|$)/, '').trim();
+  };
+
+  const getStatusConfig = (status: string) => {
+    const configs = {
+      PENDING: { color: 'amber', icon: '⏳', label: 'Menunggu Dicek', bg: 'bg-amber-500/10 border-amber-500/20 text-amber-400', desc: 'Laporan Anda sedang dalam antrean verifikasi oleh Admin.' },
+      APPROVED: { color: 'blue', icon: '✓', label: 'Disetujui', bg: 'bg-blue-500/10 border-blue-500/20 text-blue-400', desc: 'Laporan disetujui! Menunggu proses pencairan dana oleh Admin.' },
+      PAID: { color: 'emerald', icon: '✅', label: 'Sudah Cair', bg: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400', desc: 'Dana klaim Anda telah berhasil dicairkan ke kas Anda.' },
+      REJECTED: { color: 'rose', icon: '✕', label: 'Ditolak', bg: 'bg-rose-500/10 border-rose-500/20 text-rose-400', desc: 'Laporan Anda ditolak oleh Admin. Silakan periksa alasan penolakan.' }
+    };
+    return configs[status as keyof typeof configs] || configs.PENDING;
+  };
+
+  // Memetakan tipe lampiran ke Label Human Readable
+  const getAttachmentLabel = (type: string) => {
+    const labels = {
+      RECEIPT: '🧾 BON / STRUK',
+      EVIDENCE_1: '📸 KM SEBELUM',
+      EVIDENCE_2: '📸 KM SESUDAH',
+      EVIDENCE_3: '📸 EVIDEN TAMBAHAN'
+    };
+    return labels[type as keyof typeof labels] || '📸 FOTO BUKTI';
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-slate-900 border border-slate-700/50 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden my-auto max-h-[85vh] flex flex-col">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/20 shrink-0">
+          <div>
+            <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>📋</span> Detail Laporan Klaim
+            </h3>
+            <p className="text-xs text-slate-400 font-medium mt-1">Detail informasi pengajuan operasional Anda</p>
+          </div>
+          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all">✖</button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+          {loading ? (
+            <div className="py-12 flex justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div></div>
+          ) : errorMsg ? (
+            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+              <p className="text-rose-400 text-sm font-semibold">{errorMsg}</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Status Section */}
+              <div className={`p-4 rounded-2xl border ${getStatusConfig(claim.status).bg}`}>
+                <div className="flex items-center gap-2 font-black text-base uppercase tracking-wider">
+                  <span>{getStatusConfig(claim.status).icon}</span>
+                  <span>{getStatusConfig(claim.status).label}</span>
+                </div>
+                <p className="text-xs font-medium mt-1.5 opacity-90 leading-relaxed">
+                  {getStatusConfig(claim.status).desc}
+                </p>
+                {claim.status === 'REJECTED' && rejectionReason && (
+                  <div className="mt-3 bg-slate-950/40 rounded-xl p-3 border border-rose-500/20">
+                    <p className="text-[10px] font-black text-rose-300 uppercase tracking-wider mb-0.5">Alasan Penolakan:</p>
+                    <p className="text-sm font-bold text-white leading-relaxed">{rejectionReason}</p>
+                  </div>
+                )}
+                {claim.status === 'PAID' && (
+                  <div className="mt-3 bg-slate-950/40 rounded-xl p-3 border border-emerald-500/20 text-xs text-white space-y-1">
+                    {claim.paidAt && (
+                      <p><span className="text-slate-400">Tanggal Cair:</span> <span className="font-bold">{new Date(claim.paidAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB</span></p>
+                    )}
+                    {claim.paymentReference && (
+                      <p className="font-mono text-[11px]"><span className="text-slate-400 not-mono font-sans text-xs">Referensi / Keterangan:</span> <span className="font-bold">{claim.paymentReference}</span></p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Detail Info Grid */}
+              <div className="bg-slate-800/30 border border-slate-800 rounded-2xl p-5 space-y-4">
+                {/* Nominal */}
+                <div className="border-b border-slate-800/80 pb-3 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Nominal Pengeluaran</p>
+                    <p className="text-2xl font-black text-emerald-400 mt-0.5">{formatRp(claim.amount)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Kategori</p>
+                    <span className="inline-block mt-1 px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold uppercase tracking-wider">
+                      {claim.category?.name || 'Operasional'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tanggal Nota</p>
+                    <p className="text-sm font-bold text-white mt-1">
+                      {new Date(claim.expenseDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Plat Kendaraan</p>
+                    <p className="text-sm font-bold text-white mt-1 uppercase">
+                      {claim.vehiclePlate || '-'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">KM Sebelum</p>
+                    <p className="text-sm font-bold text-white mt-1">
+                      {claim.kmBefore !== null ? `${claim.kmBefore.toLocaleString('id-ID')} km` : '-'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">KM Sesudah</p>
+                    <p className="text-sm font-bold text-white mt-1">
+                      {claim.kmAfter !== null ? `${claim.kmAfter.toLocaleString('id-ID')} km` : '-'}
+                    </p>
+                  </div>
+                </div>
+
+                {claim.kmBefore !== null && claim.kmAfter !== null && (
+                  <div className="pt-2 border-t border-slate-800/50">
+                    <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Jarak Tempuh</p>
+                    <p className="text-sm font-extrabold text-indigo-400 mt-0.5">
+                      {Math.max(0, claim.kmAfter - claim.kmBefore).toLocaleString('id-ID')} km
+                    </p>
+                  </div>
+                )}
+
+                {/* Deskripsi */}
+                <div className="pt-3 border-t border-slate-800/80">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Deskripsi Pekerjaan / Tiket</p>
+                  <p className="text-sm font-semibold text-slate-300 mt-1.5 whitespace-pre-line leading-relaxed">
+                    {cleanDescription(claim.description) || <span className="text-slate-600 italic">Tidak ada deskripsi</span>}
+                  </p>
+                </div>
+              </div>
+
+              {/* Foto Bukti */}
+              <div>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider mb-3 ml-1">Foto Bukti & Lampiran</h4>
+                {claim.attachments && claim.attachments.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {claim.attachments.map((att: any) => {
+                      const label = getAttachmentLabel(att.type);
+                      return (
+                        <div
+                          key={att.id}
+                          onClick={() => setLightboxImg({ url: att.fileUrl, title: label })}
+                          className="group relative bg-slate-950 border border-slate-800 hover:border-indigo-500/50 rounded-2xl overflow-hidden aspect-[4/3] cursor-pointer transition-all duration-300"
+                        >
+                          <img
+                            src={att.fileUrl}
+                            alt={label}
+                            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-105"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent flex flex-col justify-end p-3 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-white bg-slate-900/80 border border-slate-800 px-2 py-1 rounded-lg w-max mb-1">
+                              {att.type === 'RECEIPT' ? 'BON / STRUK' : att.type === 'EVIDENCE_1' ? 'KM SEBELUM' : att.type === 'EVIDENCE_2' ? 'KM SESUDAH' : 'EVIDEN'}
+                            </span>
+                            <span className="text-[8px] font-medium text-slate-400 group-hover:text-indigo-300 transition-colors">Ketuk untuk memperbesar</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-slate-800/20 border border-dashed border-slate-800 rounded-2xl p-6 text-center text-slate-500 text-xs font-semibold">
+                    Tidak ada lampiran foto untuk laporan ini.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-800/20 shrink-0 flex justify-end">
+          <button type="button" onClick={onClose} className="px-5 py-2.5 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition-all">
+            Tutup Detail
+          </button>
+        </div>
+      </div>
+
+      {/* Lightbox fullscreen */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in zoom-in-95 duration-250"
+          onClick={() => setLightboxImg(null)}
+        >
+          <div className="relative max-w-4xl w-full h-full flex flex-col items-center justify-center gap-3">
+            <h4 className="text-white font-black text-sm uppercase tracking-widest bg-slate-900/90 border border-slate-850 px-4 py-2 rounded-xl shrink-0 select-none">
+              {lightboxImg.title}
+            </h4>
+            <div className="relative flex-1 max-h-[80vh] w-full flex items-center justify-center">
+              <img
+                src={lightboxImg.url}
+                alt={lightboxImg.title}
+                className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border border-slate-800"
+              />
+            </div>
+            <button
+              onClick={() => setLightboxImg(null)}
+              className="absolute top-4 right-4 bg-slate-900/80 text-slate-400 hover:text-white rounded-full p-2.5 hover:bg-rose-500/20 border border-slate-800 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            <p className="text-xs text-slate-500 font-semibold select-none">Ketuk di mana saja untuk kembali</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
