@@ -3,6 +3,6 @@
   "target": {
     "namespace": "android_app",
     "package_name": "id.my.vandiza.ops.twa",
-    "sha256_cert_fingerprints": ["E9:84:15:CE:A1:B6:59:BD:85:3E:B5:BC:AE:91:67:3A:E8:91:20:CF:B3:10:92:6D:E5:87:22:8A:8E:DB:FA:FE"]
+    "sha256_cert_fingerprints": ["5F:E2:CD:6A:11:B9:70:C5:C3:E4:BB:7E:60:7F:A3:8B:77:D1:B1:88:EE:3B:97:66:7A:F2:1B:F1:6B:CB:86:90"]
   }
 }]
