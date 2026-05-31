@@ -47,6 +47,11 @@ model User {
   password         String
   role             Role                @default(TECHNICIAN)
   
+  // Rate Limiting & Security
+  failedLoginAttempts Int              @default(0)
+  lockUntil           DateTime?
+  isLocked            Boolean            @default(false)
+  
   // Relasi Lama
   expenses         Expense[]           @relation("UserExpenses")
   approvedExpenses Expense[]           @relation("AdminApprover")

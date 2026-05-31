@@ -28,10 +28,50 @@ export async function loginUser(formData: FormData) {
       return { success: false, message: 'Email atau password salah!' };
     }
 
+    if (user.isLocked) {
+      return { success: false, message: 'Akun Anda Terkunci. Silahkan hubungi Admin.', isLocked: true };
+    }
+
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      return { success: false, message: 'Akun sementara dikunci.', lockUntil: user.lockUntil.toISOString(), isLocked: false };
+    }
+
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatch) {
-      return { success: false, message: 'Email atau password salah!' };
+      const failedAttempts = user.failedLoginAttempts + 1;
+      let lockUntil = null;
+      let isLocked = false;
+
+      if (failedAttempts === 3) {
+        lockUntil = new Date(Date.now() + 3 * 60 * 1000); // 3 menit
+      } else if (failedAttempts === 4) {
+        lockUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 menit
+      } else if (failedAttempts >= 5) {
+        isLocked = true;
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: failedAttempts, lockUntil, isLocked }
+      });
+
+      if (isLocked) {
+        return { success: false, message: 'Akun Anda Terkunci. Silahkan hubungi Admin.', isLocked: true };
+      }
+      if (lockUntil) {
+        return { success: false, message: 'Terlalu banyak percobaan. Akun sementara dikunci.', lockUntil: lockUntil.toISOString(), isLocked: false };
+      }
+
+      return { success: false, message: `Email atau password salah! (${failedAttempts}/3 percobaan pertama)` };
+    }
+
+    // Reset attempts on successful login
+    if (user.failedLoginAttempts > 0 || user.lockUntil || user.isLocked) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockUntil: null, isLocked: false }
+      });
     }
 
     // Create secure session

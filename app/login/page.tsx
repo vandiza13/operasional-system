@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loginUser } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import VandizaBrand from '@/app/components/VandizaBrand';
@@ -9,7 +9,36 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [lockUntil, setLockUntil] = useState<string | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [countdown, setCountdown] = useState<string>('');
   const router = useRouter();
+
+  useEffect(() => {
+    if (!lockUntil) {
+      setCountdown('');
+      return;
+    }
+
+    const target = new Date(lockUntil).getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        setLockUntil(null);
+        setCountdown('');
+        clearInterval(interval);
+      } else {
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setCountdown(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [lockUntil]);
 
   const handleLogin = async (formData: FormData) => {
     setLoading(true);
@@ -28,6 +57,12 @@ export default function LoginPage() {
     } else {
       setMessage(result.message);
       setLoading(false);
+      if (result.lockUntil) {
+        setLockUntil(result.lockUntil);
+      }
+      if (result.isLocked) {
+        setIsLocked(true);
+      }
     }
   };
 
@@ -70,53 +105,67 @@ export default function LoginPage() {
 
         {/* Notifikasi Error (Dark Mode) */}
         {message && (
-          <div className="p-4 mb-6 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl text-sm font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <div className={`p-4 mb-6 border rounded-2xl text-sm font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${
+            isLocked ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+          }`}>
             <span className="text-xl">⚠️</span> {message}
           </div>
         )}
 
-        <form action={handleLogin} className="space-y-5 relative z-10">
+        {isLocked ? (
+           <div className="text-center p-6 bg-red-950/30 border border-red-500/30 rounded-2xl">
+             <h2 className="text-xl font-bold text-red-400 mb-2">Akses Diblokir</h2>
+             <p className="text-sm text-red-300">Akun ini telah dikunci permanen karena terlalu banyak percobaan masuk yang gagal. Silahkan hubungi tim IT / Admin untuk membuka kunci akun.</p>
+           </div>
+        ) : (
+          <form action={handleLogin} className="space-y-5 relative z-10">
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-400 ml-1 uppercase tracking-widest">Email Karyawan</label>
-            <input
-              type="email" name="email" required placeholder="email@perusahaan.com"
-              disabled={loading || loginSuccess}
-              className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-400 ml-1 uppercase tracking-widest">Email Karyawan</label>
+              <input
+                type="email" name="email" required placeholder="email@perusahaan.com"
+                disabled={loading || loginSuccess || !!lockUntil || isLocked}
+                className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-xs font-bold text-slate-400 ml-1 uppercase tracking-widest">Password</label>
-            <input
-              type="password" name="password" required placeholder="••••••••"
-              disabled={loading || loginSuccess}
-              className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-400 ml-1 uppercase tracking-widest">Password</label>
+              <input
+                type="password" name="password" required placeholder="••••••••"
+                disabled={loading || loginSuccess || !!lockUntil || isLocked}
+                className="w-full px-5 py-4 bg-slate-950 border border-slate-800 rounded-2xl focus:bg-slate-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 text-white font-medium outline-none transition-all placeholder:text-slate-600 shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            </div>
 
-          <div className="pt-6">
-            <button
-              type="submit" disabled={loading || loginSuccess}
-              className={`w-full py-4 px-6 text-white font-bold text-lg rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 ${(loading || loginSuccess)
-                ? 'bg-slate-800 text-slate-500 shadow-none cursor-not-allowed border border-slate-700'
-                : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.98] shadow-indigo-900/50 border border-indigo-500/50'
-                }`}
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Memverifikasi...
-                </>
-              ) : (
-                'Masuk Sekarang ➔'
-              )}
-            </button>
-          </div>
-        </form>
+            <div className="pt-6">
+              <button
+                type="submit" disabled={loading || loginSuccess || !!lockUntil || isLocked}
+                className={`w-full py-4 px-6 text-white font-bold text-lg rounded-2xl shadow-lg transition-all flex justify-center items-center gap-2 ${(loading || loginSuccess || !!lockUntil || isLocked)
+                  ? 'bg-slate-800 text-slate-500 shadow-none cursor-not-allowed border border-slate-700'
+                  : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-[0.98] shadow-indigo-900/50 border border-indigo-500/50'
+                  }`}
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Memverifikasi...
+                  </>
+                ) : lockUntil ? (
+                  `Terkunci (${countdown})`
+                ) : (
+                  'Masuk Sekarang ➔'
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+
+
       </div>
 
       <div className="relative z-10 mt-10">
