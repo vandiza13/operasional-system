@@ -20,8 +20,7 @@ async function verifySuperAdmin() {
 
 /**
  * Menghitung ulang seluruh field `balance` dari awal sampai akhir.
- * Digunakan tiap kali ada mutasi insert manual atau delete history
- * agar riwayat saldo berkesinambungan dan tidak rusak.
+ * [DEPRECATED / BACKUP ONLY] Sekarang digantikan oleh Delta Update O(1) yang super cepat dan hemat memori.
  */
 export async function recalculateBalances() {
     try {
@@ -51,7 +50,7 @@ export async function recalculateBalances() {
             });
         });
 
-        // Jalankan seluruh pembaruan saldo melalui satu traksaksi massal aman
+        // Jalankan seluruh pembaruan saldo melalui satu transaksi massal aman
         await prisma.$transaction(updatePromises);
         return true;
 
@@ -83,23 +82,22 @@ export async function addLedgerEntry(formData: FormData) {
             return { success: false, message: 'Nominal tidak valid (harus angka positif).' };
         }
 
-        // 1. Tambahkan raw entry dengan balance dummy sementara (0)
-        await prisma.operationalLedger.create({
-            data: {
-                type: 'TOP_UP',
-                amount: amount,
-                balance: 0, // Akan di-recalculate setelah ini
-                description: description,
-                createdBy: admin.id
-            }
+        await prisma.$transaction(async (tx) => {
+            // P0: Gunakan SELECT FOR UPDATE untuk mencegah Race Condition dan mendapatkan saldo terakhir dengan aman
+            const lastLedgers = await tx.$queryRaw<{balance: any}[]>`SELECT balance FROM OperationalLedger ORDER BY createdAt DESC LIMIT 1 FOR UPDATE`;
+            const currentBalance = lastLedgers.length > 0 ? Number(lastLedgers[0].balance) : 0;
+            const newBalance = currentBalance + amount;
+
+            await tx.operationalLedger.create({
+                data: {
+                    type: 'TOP_UP',
+                    amount: amount,
+                    balance: newBalance,
+                    description: description,
+                    createdBy: admin.id
+                }
+            });
         });
-
-        // 2. Memicu chain reaction kalkulasi ulang seluruh saldo
-        const recalculateOk = await recalculateBalances();
-
-        if (!recalculateOk) {
-            return { success: false, message: 'Dana tercatat, namun terjadi kendala integrasi kalkulasi riwayat akhir. Harap kontak dev.' };
-        }
 
         revalidatePath('/admin');
         revalidatePath('/admin/ledger');
@@ -139,13 +137,23 @@ export async function deleteLedgerEntry(ledgerId: string) {
             return { success: false, message: 'Gagal. Kas ini adalah bukti sah pencairan Batch Laporan Bon. Anda harus mereset Status Laporannya dari Panel "Kelola Bon" untuk menarik ulang uang ini.' };
         }
 
-        // Eksekusi penghapusan riwayat independen
-        await prisma.operationalLedger.delete({
-            where: { id: ledgerId }
-        });
+        // Eksekusi penghapusan riwayat independen menggunakan Delta Update O(1) atomik
+        await prisma.$transaction(async (tx) => {
+            await tx.operationalLedger.delete({
+                where: { id: ledgerId }
+            });
 
-        // 2. Memicu chain reaction kalkulasi ulang seluruh saldo (merapatkan struktur balance yang rumpang)
-        await recalculateBalances();
+            // Hitung delta pergeseran saldo
+            const amount = Number(ledger.amount);
+            const delta = ledger.type === 'TOP_UP' ? -amount : amount;
+
+            // Update running balance semua entri setelahnya secara atomik di database
+            await tx.$executeRaw`
+                UPDATE OperationalLedger
+                SET balance = balance + ${delta}
+                WHERE createdAt > ${ledger.createdAt}
+            `;
+        });
 
         revalidatePath('/admin');
         revalidatePath('/admin/ledger');
@@ -193,20 +201,27 @@ export async function updateLedgerEntry(formData: FormData) {
             return { success: false, message: 'Nominal tidak valid.' };
         }
 
-        await prisma.operationalLedger.update({
-            where: { id },
-            data: {
-                amount: amount,
-                description: description
-            }
+        const oldAmount = Number(ledger.amount);
+        const delta = ledger.type === 'TOP_UP' ? (amount - oldAmount) : (oldAmount - amount);
+
+        // Eksekusi pembaruan riwayat menggunakan Delta Update O(1) atomik
+        await prisma.$transaction(async (tx) => {
+            await tx.operationalLedger.update({
+                where: { id },
+                data: {
+                    amount: amount,
+                    description: description,
+                    balance: Number(ledger.balance) + delta
+                }
+            });
+
+            // Update running balance semua entri setelahnya secara atomik di database
+            await tx.$executeRaw`
+                UPDATE OperationalLedger
+                SET balance = balance + ${delta}
+                WHERE createdAt > ${ledger.createdAt}
+            `;
         });
-
-        // Kalkulasi ulang berantai karena amount berubah
-        const recalculateOk = await recalculateBalances();
-
-        if (!recalculateOk) {
-            return { success: false, message: 'Dana tercatat, namun terjadi kendala integrasi kalkulasi. Harap kontak dev.' };
-        }
 
         revalidatePath('/admin');
         revalidatePath('/admin/ledger');

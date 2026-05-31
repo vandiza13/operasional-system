@@ -1,12 +1,20 @@
-﻿'use server'
+// File: app/actions/database.ts
+'use server'
 
 import prisma from '@/lib/prisma';
+import { getVerifiedSession } from '@/lib/session';
 
 /**
  * GET /api/reset - Cek status database
+ * PROTECTED: Only SUPER_ADMIN can access.
  */
 export async function checkDatabaseStatus() {
   try {
+    const session = await getVerifiedSession();
+    if (!session || session.userRole !== 'SUPER_ADMIN') {
+      return { success: false, message: 'Akses ditolak.' };
+    }
+
     const totalUsers = await prisma.user.count();
     const totalExpenses = await prisma.expense.count();
 
@@ -33,17 +41,23 @@ export async function checkDatabaseStatus() {
     return {
       success: false,
       message: 'Gagal mengecek status database',
-      error: String(error)
+      error: 'Terjadi kesalahan internal.'
     };
   }
 }
 
 
 /**
- * POST /api/reset - Hapus SEMUA data di database (âš ï¸ DANGEROUS!)
+ * POST /api/reset - Hapus SEMUA data di database (⚠️ DANGEROUS!)
+ * PROTECTED: Only SUPER_ADMIN can access.
  */
 export async function completeDeleteAllData() {
   try {
+    const session = await getVerifiedSession();
+    if (!session || session.userRole !== 'SUPER_ADMIN') {
+      return { success: false, message: 'Akses ditolak.' };
+    }
+
     // Hapus expense attachments terlebih dahulu
     const attachmentCount = await prisma.expenseAttachment.deleteMany({});
 
@@ -64,7 +78,7 @@ export async function completeDeleteAllData() {
 
     return {
       success: true,
-      message: `âœ… Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}\nHapus ledger: ${ledgerCount.count}\nHapus payout: ${payoutCount.count}`,
+      message: `✅ Database berhasil dihapus total!\nHapus user: ${userCount.count}\nHapus expense: ${expenseCount.count}\nHapus attachment: ${attachmentCount.count}\nHapus kategori: ${categoryCount.count}\nHapus ledger: ${ledgerCount.count}\nHapus payout: ${payoutCount.count}`,
       deletedRecords: {
         users: userCount.count,
         expenses: expenseCount.count,
@@ -79,7 +93,7 @@ export async function completeDeleteAllData() {
     return {
       success: false,
       message: 'Gagal menghapus data database',
-      error: String(error)
+      error: 'Terjadi kesalahan internal.'
     };
   }
 }

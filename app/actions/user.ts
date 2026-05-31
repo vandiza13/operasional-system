@@ -1,4 +1,4 @@
-﻿'use server';
+'use server';
 
 import prisma from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
@@ -55,6 +55,12 @@ export async function getAllUsers() {
  */
 export async function resetAndReseedUsers() {
   try {
+    // 🛡️ KEAMANAN KRITIKAL: Pastikan hanya SUPER_ADMIN terverifikasi yang bisa melakukan reset data
+    const session = await getVerifiedSession();
+    if (!session || session.userRole !== 'SUPER_ADMIN') {
+      return { success: false, message: 'Akses ditolak. Hanya Super Admin terverifikasi yang diizinkan.' };
+    }
+
     // Get credentials from environment variables
     const superAdminEmail = process.env.SEED_SUPER_ADMIN_EMAIL || 'superadmin@example.com';
     const superAdminPassword = process.env.SEED_SUPER_ADMIN_PASSWORD;

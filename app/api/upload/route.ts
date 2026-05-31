@@ -1,7 +1,7 @@
 // File: app/api/upload/route.ts
 import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/session';
+import { getVerifiedSession } from '@/lib/session';
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
@@ -11,8 +11,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async () => {
-        // [SOP: KEAMANAN] Pastikan hanya user yang login yang bisa upload
-        const session = await getSession();
+        // [SOP: KEAMANAN] Pastikan hanya user yang login yang bisa upload (verifikasi database)
+        const session = await getVerifiedSession();
         if (!session?.userId) {
           throw new Error('Unauthorized: Anda harus login untuk mengunggah file');
         }
