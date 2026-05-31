@@ -1,10 +1,21 @@
-﻿'use server'
+'use server'
 
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { createSession, deleteSession } from '@/lib/session';
+import { headers } from 'next/headers';
+import { checkLoginRateLimit } from '@/lib/rate-limit';
 
 export async function loginUser(formData: FormData) {
+  // Pengecekan Rate Limit
+  const headersList = await headers();
+  const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || '127.0.0.1';
+  
+  const rateLimit = await checkLoginRateLimit(ip);
+  if (!rateLimit.success) {
+    return { success: false, message: 'Terlalu banyak percobaan login. Silakan coba lagi dalam 5 menit.' };
+  }
+
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
 
