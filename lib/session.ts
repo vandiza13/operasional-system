@@ -1,39 +1,12 @@
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { Role } from '@prisma/client';
 import prisma from '@/lib/prisma';
-
-const secretKey = process.env.SESSION_SECRET || 'fallback_secret_for_development_only_please_change';
-const key = new TextEncoder().encode(secretKey);
-
-export type SessionPayload = {
-    userId: string;
-    userName: string;
-    userRole: Role;
-};
-
-export async function encrypt(payload: SessionPayload) {
-    return await new SignJWT(payload)
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('24h') // Set session expiry, e.g., 24 hours
-        .sign(key);
-}
-
-export async function decrypt(input: string): Promise<SessionPayload | null> {
-    try {
-        const { payload } = await jwtVerify(input, key, {
-            algorithms: ['HS256'],
-        });
-        return payload as SessionPayload;
-    } catch (error) {
-        return null;
-    }
-}
+import { encrypt, decrypt, type SessionPayload } from './session-crypto';
 
 export async function createSession(userId: string, userName: string, userRole: Role) {
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    const session = await encrypt({ userId, userName, userRole });
+    // Cast userRole to session-crypto UserRole type which matches the prisma Role enum values
+    const session = await encrypt({ userId, userName, userRole: userRole as any });
 
     const cookieStore = await cookies();
     cookieStore.set('session', session, {
@@ -61,21 +34,10 @@ export async function getVerifiedSession() {
     const session = await getSession();
     if (!session || !session.userId) return null;
 
-    try {
-        const user = await prisma.user.findUnique({
-            where: { id: session.userId },
-            select: { id: true, role: true }
-        });
-
-        if (!user) return null;
-
-        return {
-            userId: user.id,
-            userName: session.userName,
-            userRole: user.role
-        };
-    } catch (error) {
-        console.error('Verified Session Error:', error);
-        return null;
-    }
+    return {
+        userId: session.userId,
+        userName: session.userName,
+        userRole: session.userRole as Role
+    };
 }
+

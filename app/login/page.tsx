@@ -50,9 +50,9 @@ export default function LoginPage() {
       setLoginSuccess(true);
       // Pintu Masuk Disesuaikan: Admin & Super Admin masuk ke portal yang sama
       if (result.role === 'SUPER_ADMIN' || result.role === 'ADMIN') {
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
-        router.push('/submit'); // Teknisi masuk ke form
+        window.location.href = '/submit'; // Teknisi masuk ke form
       }
     } else {
       setMessage(result.message);

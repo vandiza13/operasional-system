@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { decrypt } from '@/lib/session';
+import { decrypt } from '@/lib/session-crypto';
 
 export async function proxy(request: NextRequest) {
     const sessionCookie = request.cookies.get('session');
