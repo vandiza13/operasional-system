@@ -111,6 +111,11 @@ export async function updateExpenseRecord(formData: FormData) {
 
         if (categoryId) updateData.categoryId = categoryId;
 
+        const oldExpense = await prisma.expense.findUnique({ where: { id } });
+        if (!oldExpense) {
+            return { success: false, message: 'Data tidak ditemukan.' };
+        }
+
         // Status update
         if (status && ['PENDING', 'APPROVED', 'PAID', 'REJECTED'].includes(status)) {
             updateData.status = status;
@@ -135,9 +140,49 @@ export async function updateExpenseRecord(formData: FormData) {
             updateData.vehiclePlate = vehiclePlate.trim() === '' ? null : vehiclePlate.trim().toUpperCase();
         }
 
-        await prisma.expense.update({
-            where: { id },
-            data: updateData
+        await prisma.$transaction(async (tx) => {
+            // [KOREKSI SALDO OTOMATIS]
+            // Jika bon yang tadinya SUDAH CAIR (PAID) dikembalikan ke status lain (misal APPROVED/PENDING)
+            if (oldExpense.status === 'PAID' && updateData.status && updateData.status !== 'PAID') {
+                if (oldExpense.payoutBatchId) {
+                    // 1. Kunci dan ambil saldo terakhir
+                    const lastLedgers = await tx.$queryRaw<{balance: any}[]>`SELECT balance FROM OperationalLedger ORDER BY createdAt DESC LIMIT 1 FOR UPDATE`;
+                    const currentBalance = lastLedgers.length > 0 ? Number(lastLedgers[0].balance) : 0;
+                    const refundAmount = Number(oldExpense.amount);
+                    const newBalance = currentBalance + refundAmount;
+            
+                    // 2. Tambah saldo (Refund)
+                    await tx.operationalLedger.create({
+                        data: {
+                            type: 'TOP_UP',
+                            amount: refundAmount,
+                            balance: newBalance,
+                            description: `Pengembalian dana (Refund) akibat pembatalan bon cair`,
+                            createdBy: admin.id
+                        }
+                    });
+            
+                    // 3. Kurangi nominal di batch pencairan yang lama
+                    const batch = await tx.payoutBatch.findUnique({ where: { id: oldExpense.payoutBatchId } });
+                    if (batch) {
+                        await tx.payoutBatch.update({
+                            where: { id: oldExpense.payoutBatchId },
+                            data: {
+                                totalAmount: Number(batch.totalAmount) - refundAmount
+                            }
+                        });
+                    }
+                    
+                    // 4. Putuskan hubungan bon dengan batch lama
+                    updateData.payoutBatchId = null;
+                }
+            }
+
+            // Eksekusi pembaruan data bon
+            await tx.expense.update({
+                where: { id },
+                data: updateData
+            });
         });
 
         revalidatePath('/admin');
