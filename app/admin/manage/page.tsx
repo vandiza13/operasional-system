@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma';
 import ManageClaimsTable from '@/app/components/ManageClaimsTable';
 import MonthFilter from '@/app/admin/MonthFilter'; 
 import { Suspense } from 'react';
+import { Settings } from 'lucide-react';
 
 // WAJIB: Pastikan halaman Admin ini tidak di-cache secara statis 
 // agar setiap perubahan data (Edit/Hapus) langsung terlihat.
@@ -97,8 +98,8 @@ export default async function ManageClaimsPage(props: { searchParams: Promise<{ 
             {/* HEADER PAGE */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/60 pb-6 relative z-50">
                 <div>
-                    <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                        <span className="text-3xl">⚙️</span> Kelola Semua Bon
+                    <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                        <Settings className="w-8 h-8 text-slate-400" /> Kelola Semua Bon
                     </h2>
                     <p className="text-sm text-slate-400 font-medium mt-1">
                         Area khusus Super Admin untuk mengedit atau menghapus data riwayat secara permanen.

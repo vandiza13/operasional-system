@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+import { Calendar } from 'lucide-react';
 
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -50,7 +51,7 @@ export default function MonthFilter() {
         onClick={() => setIsOpen(!isOpen)}
         className="bg-slate-800/80 hover:bg-slate-700/80 transition-all px-4 py-2.5 rounded-xl border border-slate-700 shadow-sm flex items-center gap-3 cursor-pointer group select-none"
       >
-        <span className="text-xl group-hover:scale-110 transition-transform">📅</span>
+        <Calendar className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
 
         <div className="flex flex-col text-left">
           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Filter Laporan</span>

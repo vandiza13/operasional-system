@@ -9,6 +9,9 @@ import LogoutButton from '@/app/components/LogoutButton';
 import VandizaBrand from '@/app/components/VandizaBrand';
 import Link from 'next/link';
 import { upload } from '@vercel/blob/client';
+import { User, Wrench, IdCard, Smartphone, FileText, BarChart2, List, CheckCircle2, AlertTriangle, Receipt, Plus, Camera, Send, Calendar, Clock, Building, XCircle, Edit2, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+
 
 
 type Category = { id: string, name: string };
@@ -76,7 +79,7 @@ export default function SubmitPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    const toastId = toast.loading('Memproses unggahan foto... ⏳');
 
     try {
       const form = e.currentTarget;
@@ -85,8 +88,6 @@ export default function SubmitPage() {
       if (!compressedReceipt || !compressedEvidence[0] || !compressedEvidence[1]) {
         throw new Error("Mohon lengkapi Foto Struk dan minimal 2 Bukti Lapangan wajib.");
       }
-
-      setMessage('Mengunggah foto ke server... ⏳');
 
       // 2. Fungsi bantuan untuk upload langsung ke Blob
       const uploadToBlob = async (file: File, prefix: string) => {
@@ -112,7 +113,7 @@ export default function SubmitPage() {
 
       const urls = await Promise.all(uploadPromises);
 
-      setMessage('Menyimpan data laporan... 💾');
+      toast.loading('Menyimpan data laporan... 💾', { id: toastId });
 
       // 4. Siapkan Data untuk Server Action (HANYA MENGIRIM TEKS)
       const formData = new FormData();
@@ -139,9 +140,8 @@ export default function SubmitPage() {
       // 5. Eksekusi Server Action
       const result = await submitReimbursement(formData);
 
-      setMessage(result.message);
-
       if (result.success) {
+        toast.success(result.message, { id: toastId });
         formRef.current?.reset();
         setReceiptFile(null);
         setEvidenceFiles([null, null, null]);
@@ -151,11 +151,13 @@ export default function SubmitPage() {
         // Pindah otomatis ke tab statistik
         setActiveTab('stats');
         getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
+      } else {
+        toast.error(result.message, { id: toastId });
       }
 
     } catch (error: any) {
       console.error("Submit Error:", error);
-      setMessage(error.message || '⚠️ Gagal mengirim laporan. Pastikan koneksi stabil.');
+      toast.error(error.message || '⚠️ Gagal mengirim laporan. Pastikan koneksi stabil.', { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -235,10 +237,10 @@ export default function SubmitPage() {
   const selectedMonthName = MONTHS[parseInt(selMonth, 10) - 1];
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200 pb-12">
+    <div className="min-h-screen bg-transparent flex flex-col font-sans pb-12">
 
       {/* HEADER */}
-      <header className="bg-slate-950 sticky top-0 z-20 border-b border-slate-800/60 shadow-lg px-5 py-4 flex justify-between items-center">
+      <header className="bg-slate-950/60 backdrop-blur-2xl sticky top-0 z-20 border-b border-white/5 shadow-2xl px-5 py-4 flex justify-between items-center transition-all">
         <div className="flex items-center gap-3">
           <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2 rounded-xl shadow-lg shadow-indigo-900/50">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,8 +254,8 @@ export default function SubmitPage() {
         </div>
         <div className="flex items-center gap-3">
           <Link href="/profile">
-            <button className="flex items-center justify-center p-2.5 bg-slate-800 hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 rounded-xl transition-all border border-slate-700/50 hover:border-indigo-500/30 shadow-sm" title="Profil Saya">
-              <span className="text-lg leading-none">👤</span>
+            <button className="flex items-center justify-center p-2.5 bg-slate-900/50 backdrop-blur-md hover:bg-indigo-500/20 text-slate-300 hover:text-indigo-400 rounded-xl transition-all duration-300 border border-white/5 hover:border-indigo-500/30 shadow-sm active:scale-95" title="Profil Saya">
+              <User className="w-5 h-5" />
             </button>
           </Link>
           <LogoutButton />
@@ -264,56 +266,52 @@ export default function SubmitPage() {
         <div className="w-full max-w-lg space-y-6">
 
           {/* KARTU PROFIL TEKNISI */}
-          <div className="bg-slate-800/50 rounded-[2rem] p-6 shadow-lg border border-slate-700/50 relative overflow-hidden backdrop-blur-sm">
+          <div className="bg-slate-900/40 rounded-[2rem] p-6 shadow-2xl border border-white/5 relative overflow-hidden backdrop-blur-2xl">
             <div className="absolute -top-16 -right-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl"></div>
             <div className="flex items-center gap-4 relative z-10">
-              <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center border border-slate-700/50 shadow-inner flex-shrink-0">
-                <span className="text-3xl">👷‍♂️</span>
+              <div className="w-16 h-16 bg-slate-950/60 rounded-2xl flex items-center justify-center border border-white/10 shadow-inner flex-shrink-0">
+                <Wrench className="w-8 h-8 text-slate-500" />
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg font-extrabold text-white truncate">{profile.name}</h2>
                 <p className="text-sm font-bold text-indigo-400 truncate">{profile.position || 'Teknisi Lapangan'}</p>
                 <div className="flex items-center gap-3 mt-1.5 text-xs font-semibold text-slate-400">
-                  <span className="flex items-center gap-1"><span className="text-slate-500">🆔</span> {profile.nik || '-'}</span>
-                  <span className="flex items-center gap-1"><span className="text-slate-500">📱</span> {profile.phone || '-'}</span>
+                  <span className="flex items-center gap-1"><span className="text-slate-500"><IdCard className="w-4 h-4" /></span> {profile.nik || '-'}</span>
+                  <span className="flex items-center gap-1"><span className="text-slate-500"><Smartphone className="w-4 h-4" /></span> {profile.phone || '-'}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* TAB NAVIGASI (SEGMENTED CONTROL) */}
-          <div className="flex bg-slate-800/80 p-1.5 rounded-2xl border border-slate-700/50 shadow-inner">
+          <div className="flex bg-slate-950/50 backdrop-blur-xl p-1.5 rounded-2xl border border-white/5 shadow-inner">
             <button
               type="button"
               onClick={() => setActiveTab('form')}
-              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'form' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 flex items-center justify-center ${activeTab === 'form' ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
             >
-              📝 Klaim
+              <FileText className="w-4 h-4 mr-1.5" /> Klaim
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('stats')}
-              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'stats' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 flex items-center justify-center ${activeTab === 'stats' ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
             >
-              📊 Statistik
+              <BarChart2 className="w-4 h-4 mr-1.5" /> Statistik
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('history')}
-              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 ${activeTab === 'history' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'}`}
+              className={`flex-1 py-3.5 text-sm font-bold rounded-xl transition-all duration-300 flex items-center justify-center ${activeTab === 'history' ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'}`}
             >
-              📋 Riwayat
+              <List className="w-4 h-4 mr-1.5" /> Riwayat
             </button>
           </div>
 
 
           {/* NOTIFIKASI */}
-          {message && (
-            <div className={`p-4 rounded-2xl flex items-start gap-3 transition-all shadow-sm ${message.includes('berhasil') ? 'bg-emerald-500/10 border border-emerald-500/20' : 'bg-rose-500/10 border border-rose-500/20'}`}>
-              <span className="text-xl">{message.includes('berhasil') ? '🎉' : '⚠️'}</span>
-              <p className={`text-sm font-semibold pt-0.5 ${message.includes('berhasil') ? 'text-emerald-400' : 'text-rose-400'}`}>{message}</p>
-            </div>
-          )}
+          {/* Old alert box removed in favor of floating toast */}
+
 
 
           {/* ---------------------------------------------------- */}
@@ -326,11 +324,11 @@ export default function SubmitPage() {
                 <p className="text-sm text-slate-400 font-medium mt-1">Isi detail dan unggah 4 foto wajib.</p>
               </div>
 
-              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 bg-slate-800/50 p-6 sm:p-8 rounded-[2rem] shadow-lg border border-slate-700/50 backdrop-blur-sm">
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 bg-slate-900/40 p-6 sm:p-8 rounded-[2rem] shadow-2xl border border-white/5 backdrop-blur-2xl">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label htmlFor="categoryId" className="block text-sm font-bold text-slate-400 ml-1">Kategori</label>
-                    <select id="categoryId" name="categoryId" required className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all cursor-pointer">
+                    <select id="categoryId" name="categoryId" required disabled={loading} className="w-full px-4 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all cursor-pointer disabled:opacity-50">
                       <option value="">Pilih...</option>
                       {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
@@ -338,7 +336,7 @@ export default function SubmitPage() {
 
                   <div className="space-y-1.5">
                     <label htmlFor="expenseDate" className="block text-sm font-bold text-slate-400 ml-1">Tgl Nota</label>
-                    <input type="date" id="expenseDate" name="expenseDate" required className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all dark-date-picker" />
+                    <input type="date" id="expenseDate" name="expenseDate" required disabled={loading} className="w-full px-4 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all dark-date-picker disabled:opacity-50" />
                   </div>
                 </div>
 
@@ -346,39 +344,39 @@ export default function SubmitPage() {
                   <label htmlFor="amount" className="block text-sm font-bold text-slate-400 ml-1">Nominal Pengeluaran (Rp)</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-slate-500 font-extrabold">Rp</span></div>
-                    <input type="number" id="amount" name="amount" required min="1" placeholder="0" className="w-full pl-12 pr-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-indigo-400 font-black text-xl outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} id="amount" name="amount" required disabled={loading} placeholder="0" className="w-full pl-12 pr-5 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-indigo-400 font-black text-xl outline-none transition-all placeholder:text-slate-600 placeholder:font-normal disabled:opacity-50" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="description" className="block text-sm font-bold text-slate-400 ml-1">Deskripsi Pekerjaan / Nomer Tiket</label>
-                  <textarea id="description" name="description" required rows={2} placeholder="Contoh: Beli bensin untuk tiket #12345..." className="w-full px-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all resize-none placeholder:text-slate-600 placeholder:font-normal"></textarea>
+                  <textarea id="description" name="description" required rows={2} disabled={loading} placeholder="Contoh: Beli bensin untuk tiket #12345..." className="w-full px-5 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all resize-none placeholder:text-slate-600 placeholder:font-normal disabled:opacity-50"></textarea>
                 </div>
 
                 <div className="space-y-1.5">
                   <label htmlFor="vehiclePlate" className="block text-sm font-bold text-slate-400 ml-1">Plat Kendaraan</label>
-                  <input type="text" id="vehiclePlate" name="vehiclePlate" placeholder="Contoh: B 1234 XYZ" className="w-full px-5 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
+                  <input type="text" id="vehiclePlate" name="vehiclePlate" disabled={loading} placeholder="Contoh: B 1234 XYZ" className="w-full px-5 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-white text-sm font-medium outline-none transition-all placeholder:text-slate-600 placeholder:font-normal disabled:opacity-50" />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label htmlFor="kmBefore" className="block text-sm font-bold text-slate-400 ml-1">KM Sebelum</label>
-                    <input type="number" id="kmBefore" name="kmBefore" min="0" placeholder="0" className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white font-black text-lg outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} id="kmBefore" name="kmBefore" disabled={loading} placeholder="0" className="w-full px-4 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-white font-black text-lg outline-none transition-all placeholder:text-slate-600 placeholder:font-normal disabled:opacity-50" />
                   </div>
                   <div className="space-y-1.5">
                     <label htmlFor="kmAfter" className="block text-sm font-bold text-slate-400 ml-1">KM Sesudah</label>
-                    <input type="number" id="kmAfter" name="kmAfter" min="0" placeholder="0" className="w-full px-4 py-4 bg-slate-900 border border-slate-700 rounded-2xl focus:bg-slate-950 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 text-white font-black text-lg outline-none transition-all placeholder:text-slate-600 placeholder:font-normal" />
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} id="kmAfter" name="kmAfter" disabled={loading} placeholder="0" className="w-full px-4 py-4 bg-black/20 border border-white/10 rounded-2xl shadow-inner backdrop-blur-md focus:bg-black/40 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 text-white font-black text-lg outline-none transition-all placeholder:text-slate-600 placeholder:font-normal disabled:opacity-50" />
                   </div>
                 </div>
 
-                <div className="w-full h-px bg-slate-700/50 my-4"></div>
+                <div className="w-full h-px bg-white/5 my-4"></div>
 
                 <div className="space-y-2">
                   <label className="block text-sm font-bold text-white ml-1">1. Foto Bon/Struk <span className="text-rose-500">*</span></label>
-                  <div className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center group cursor-pointer transition-all ${receiptFile ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10'}`}>
-                    <input type="file" id="receipt" name="receipt" accept="image/*" required className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={handleReceiptChange} />
-                    <div className={`w-14 h-14 rounded-full shadow-inner border mb-3 flex items-center justify-center transition-all duration-300 ${receiptFile ? 'bg-emerald-900/50 border-emerald-500/50 scale-110' : 'bg-slate-900 border-slate-700/50 group-hover:scale-110 group-hover:border-indigo-500/50'}`}>
-                      <span className="text-2xl">{receiptFile ? '✅' : '🧾'}</span>
+                  <div className={`relative border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center group cursor-pointer transition-all duration-300 ${receiptFile ? 'bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]' : 'border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 shadow-inner'}`}>
+                    <input type="file" id="receipt" name="receipt" accept="image/*" required disabled={loading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" onChange={handleReceiptChange} />
+                    <div className={`w-14 h-14 rounded-full shadow-inner border mb-3 flex items-center justify-center transition-all duration-300 ${receiptFile ? 'bg-emerald-500/20 border-emerald-400 scale-110' : 'bg-black/40 border-white/10 group-hover:scale-110 group-hover:border-indigo-400/50'}`}>
+                      {receiptFile ? <CheckCircle2 className="w-6 h-6 text-emerald-400" /> : <Receipt className="w-6 h-6 text-slate-400 group-hover:text-indigo-400 transition-colors" />}
                     </div>
                     <p className={`text-sm font-bold ${receiptFile ? 'text-emerald-400' : 'text-indigo-400'}`}>{receiptFile ? receiptFile.name : 'Ketuk untuk pilih Struk'}</p>
                   </div>
@@ -392,10 +390,10 @@ export default function SubmitPage() {
                       { id: 2, label: 'KM Sesudah', req: true },
                       { id: 3, label: 'Eviden Tmbh', req: false }
                     ].map((item) => (
-                      <div key={item.id} className={`relative border-2 ${item.req ? 'border-dashed' : 'border-dotted'} rounded-2xl p-3 flex flex-col items-center justify-center text-center cursor-pointer h-28 group transition-all ${evidenceFiles[item.id - 1] ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 hover:border-indigo-500/50 bg-slate-900 hover:bg-indigo-500/5'}`}>
-                        <input type="file" id={`evidence${item.id}`} name={`evidence${item.id}`} accept="image/*" required={item.req} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleEvidenceChange(e, item.id - 1)} />
-                        <span className={`text-2xl mb-2 transition-all duration-300 ${evidenceFiles[item.id - 1] ? '' : 'grayscale opacity-30 group-hover:grayscale-0 group-hover:opacity-100'}`}>
-                          {evidenceFiles[item.id - 1] ? '✅' : (item.id === 3 ? '➕' : '📸')}
+                      <div key={item.id} className={`relative border-2 ${item.req ? 'border-dashed' : 'border-dotted'} rounded-2xl p-3 flex flex-col items-center justify-center text-center cursor-pointer h-28 group transition-all ${evidenceFiles[item.id - 1] ? 'bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-white/10 hover:border-indigo-500/50 bg-black/20 hover:bg-indigo-500/10 shadow-inner'}`}>
+                        <input type="file" id={`evidence${item.id}`} name={`evidence${item.id}`} accept="image/*" required={item.req} disabled={loading} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" onChange={(e) => handleEvidenceChange(e, item.id - 1)} />
+                        <span className={`mb-2 transition-all duration-300 ${evidenceFiles[item.id - 1] ? '' : 'opacity-30 group-hover:opacity-100'}`}>
+                          {evidenceFiles[item.id - 1] ? <CheckCircle2 className="w-6 h-6 text-emerald-400" /> : (item.id === 3 ? <Plus className="w-6 h-6 text-slate-400 group-hover:text-indigo-400" /> : <Camera className="w-6 h-6 text-slate-400 group-hover:text-indigo-400" />)}
                         </span>
                         <p className={`text-[9px] font-bold uppercase tracking-wider transition-colors leading-tight ${evidenceFiles[item.id - 1] ? 'text-emerald-400' : 'text-slate-500 group-hover:text-indigo-400'}`}>
                           {evidenceFiles[item.id - 1] ? 'Terpilih' : item.label}
@@ -406,8 +404,8 @@ export default function SubmitPage() {
                 </div>
 
                 <div className="pt-6">
-                  <button type="submit" disabled={loading} className={`w-full py-4 px-6 text-white font-black text-lg rounded-2xl shadow-xl transition-all flex justify-center items-center gap-2 ${loading ? 'bg-slate-700 text-slate-400 shadow-none cursor-not-allowed' : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 active:scale-95 shadow-indigo-900/50'}`}>
-                    {loading ? 'Mengunggah...' : 'Kirim Laporan 🚀'}
+                  <button type="submit" disabled={loading} className={`w-full py-4 px-6 text-white font-black text-lg rounded-2xl shadow-xl transition-all duration-300 flex justify-center items-center gap-2 ${loading ? 'bg-white/5 text-slate-500 shadow-none cursor-not-allowed border border-white/5' : 'bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 active:scale-[0.98] shadow-[0_0_30px_rgba(99,102,241,0.3)] border border-white/10 hover:border-white/20'}`}>
+                    {loading ? 'Mengunggah...' : <>Kirim Laporan <Send className="w-5 h-5 ml-1" /></>}
                   </button>
                 </div>
               </form>
@@ -425,8 +423,8 @@ export default function SubmitPage() {
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-xl font-black text-white tracking-tight">Data Laporan</h3>
 
-                <div className="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden">
-                  <span className="text-sm group-hover:scale-110 transition-transform">📅</span>
+                <div className="relative flex items-center gap-2 bg-slate-900/40 hover:bg-slate-800/60 transition-all duration-300 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden backdrop-blur-md">
+                  <Calendar className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
                   <div className="text-xs text-white font-bold flex items-center tracking-wide">
                     {selectedMonthName} <span className="text-indigo-400 mx-1.5 font-black">|</span> {selYear}
                   </div>
@@ -454,16 +452,16 @@ export default function SubmitPage() {
 
               {/* GRID KARTU METRIK RUPIAH */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50 shadow-sm backdrop-blur-sm">
-                  <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider flex items-center gap-1.5"><span className="text-sm">⏳</span> Sedang Dicek</p>
+                <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 shadow-xl backdrop-blur-xl hover:bg-slate-900/60 transition-colors duration-300">
+                  <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider flex items-center"><Clock className="w-3 h-3 mr-1.5" /> Sedang Dicek</p>
                   <p className="text-xl font-black text-white mt-2">{formatRp(stats.pending)}</p>
                 </div>
-                <div className="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50 shadow-sm backdrop-blur-sm">
-                  <p className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider flex items-center gap-1.5"><span className="text-sm">🏦</span> Menunggu Cair</p>
+                <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 shadow-xl backdrop-blur-xl hover:bg-slate-900/60 transition-colors duration-300">
+                  <p className="text-[10px] font-extrabold text-blue-400 uppercase tracking-wider flex items-center"><Building className="w-3 h-3 mr-1.5" /> Menunggu Cair</p>
                   <p className="text-xl font-black text-white mt-2">{formatRp(stats.approved)}</p>
                 </div>
-                <div className="bg-slate-800/50 p-5 rounded-3xl border border-slate-700/50 shadow-sm backdrop-blur-sm">
-                  <p className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5"><span className="text-sm">✅</span> Sudah Cair</p>
+                <div className="bg-slate-900/40 p-5 rounded-3xl border border-white/5 shadow-xl backdrop-blur-xl hover:bg-slate-900/60 transition-colors duration-300">
+                  <p className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center"><CheckCircle2 className="w-3 h-3 mr-1.5" /> Sudah Cair</p>
                   <p className="text-xl font-black text-white mt-2">{formatRp(stats.paid)}</p>
                 </div>
               </div>
@@ -481,8 +479,8 @@ export default function SubmitPage() {
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-xl font-black text-white tracking-tight">Riwayat Klaim</h3>
 
-                <div className="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 transition-colors border border-slate-700 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden">
-                  <span className="text-sm group-hover:scale-110 transition-transform">📅</span>
+                <div className="relative flex items-center gap-2 bg-slate-900/40 hover:bg-slate-800/60 transition-all duration-300 border border-white/5 hover:border-white/10 px-3 py-2 rounded-xl shadow-sm cursor-pointer group overflow-hidden backdrop-blur-md">
+                  <Calendar className="w-4 h-4 text-slate-400 group-hover:text-white transition-colors" />
                   <div className="text-xs text-white font-bold flex items-center tracking-wide">
                     {selectedMonthName} <span className="text-indigo-400 mx-1.5 font-black">|</span> {selYear}
                   </div>
@@ -504,8 +502,8 @@ export default function SubmitPage() {
 
               {/* EMPTY STATE */}
               {!claimsLoading && claims.length === 0 && (
-                <div className="bg-slate-800/30 border-2 border-dashed border-slate-700/50 rounded-3xl p-12 text-center backdrop-blur-sm">
-                  <div className="text-5xl mb-4 grayscale opacity-30">📋</div>
+                <div className="bg-slate-900/20 border-2 border-dashed border-white/10 rounded-3xl p-12 text-center backdrop-blur-xl">
+                  <List className="w-12 h-12 mx-auto text-slate-500 opacity-50 mb-4" />
                   <p className="text-slate-400 font-bold text-lg">Belum Ada Klaim</p>
                   <p className="text-slate-500 text-sm mt-2">Tidak ada data klaim untuk periode ini.</p>
                 </div>
@@ -517,10 +515,10 @@ export default function SubmitPage() {
                   {claims.map((claim) => {
                     // Status badge config
                     const statusConfig = {
-                      PENDING: { color: 'amber', icon: '⏳', label: 'Menunggu' },
-                      APPROVED: { color: 'blue', icon: '✓', label: 'Disetujui' },
-                      PAID: { color: 'emerald', icon: '✅', label: 'Sudah Cair' },
-                      REJECTED: { color: 'rose', icon: '✕', label: 'Ditolak' }
+                      PENDING: { color: 'amber', icon: <Clock className="w-3 h-3 mr-1" />, label: 'Menunggu' },
+                      APPROVED: { color: 'blue', icon: <CheckCircle2 className="w-3 h-3 mr-1" />, label: 'Disetujui' },
+                      PAID: { color: 'emerald', icon: <CheckCircle2 className="w-3 h-3 mr-1" />, label: 'Sudah Cair' },
+                      REJECTED: { color: 'rose', icon: <XCircle className="w-3 h-3 mr-1" />, label: 'Ditolak' }
                     };
                     const status = statusConfig[claim.status as keyof typeof statusConfig] || statusConfig.PENDING;
 
@@ -528,14 +526,12 @@ export default function SubmitPage() {
                       <div
                         key={claim.id}
                         onClick={() => setSelectedClaimId(claim.id)}
-                        className={`bg-slate-800/50 hover:bg-slate-800/80 hover:border-slate-600 rounded-2xl border shadow-sm backdrop-blur-sm overflow-hidden cursor-pointer transition-all duration-200 ${claim.status === 'REJECTED' ? 'border-rose-500/30 hover:border-rose-500/50' : 'border-slate-700/50'
-                          }`}
+                        className={`bg-black/20 hover:bg-black/40 rounded-2xl border shadow-xl backdrop-blur-xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-2xl hover:-translate-y-0.5 ${claim.status === 'REJECTED' ? 'border-rose-500/30 hover:border-rose-500/50' : 'border-white/5 hover:border-white/10'}`}
                       >
                         {/* Header Card */}
-                        <div className={`px-4 py-3 border-b flex items-center justify-between ${claim.status === 'REJECTED' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-900/30 border-slate-700/30'
-                          }`}>
+                        <div className={`px-4 py-3 border-b flex items-center justify-between ${claim.status === 'REJECTED' ? 'bg-rose-500/10 border-rose-500/20' : 'bg-black/20 border-white/5'}`}>
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${claim.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                            <span className={`text-xs font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border flex items-center ${claim.status === 'PENDING' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
                               claim.status === 'APPROVED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
                                 claim.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                                   'bg-rose-500/10 text-rose-400 border-rose-500/20'
@@ -567,9 +563,9 @@ export default function SubmitPage() {
                                     e.stopPropagation();
                                     setEditingClaimId(claim.id);
                                   }}
-                                  className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-lg border border-indigo-500/20 transition-colors"
+                                  className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-lg border border-indigo-500/20 transition-colors flex items-center"
                                 >
-                                  ✏️ Edit Bon
+                                  <Edit2 className="w-3 h-3 mr-1" /> Edit Bon
                                 </button>
                               )}
                             </div>
@@ -579,7 +575,7 @@ export default function SubmitPage() {
                           {claim.status === 'REJECTED' && claim.rejectionReason && (
                             <div className="mt-3 bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
                               <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                <span>🚫</span> Alasan Penolakan
+                                <XCircle className="w-3 h-3" /> Alasan Penolakan
                               </p>
                               <p className="text-sm font-semibold text-rose-300 leading-relaxed">
                                 {claim.rejectionReason}
@@ -612,7 +608,7 @@ export default function SubmitPage() {
           onClose={() => setEditingClaimId(null)}
           onSuccess={() => {
             setEditingClaimId(null);
-            setMessage('Laporan Anda berhasil diperbarui!');
+            toast.success('Laporan Anda berhasil diperbarui!');
             // Refresh data tab history
             getTechnicianClaims(selectedMonth).then((data) => { if (data) setClaims(data); });
             getTechnicianStats(selectedMonth).then((data) => { if (data) setStats(data); });
@@ -802,11 +798,11 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
         <div className="px-6 py-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/20 shrink-0">
           <div>
             <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>✏️</span> Edit Bon Laporan
+              <Edit2 className="w-5 h-5 text-indigo-400" /> Edit Bon Laporan
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-1">Perbarui data laporan sebelum disetujui Admin</p>
           </div>
-          <button type="button" disabled={submitting} onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all">✖</button>
+          <button type="button" disabled={submitting} onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all"><X className="w-4 h-4" /></button>
         </div>
 
         {/* Body */}
@@ -847,10 +843,10 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-400 ml-1">Nominal (Rp)</label>
                 <input
-                  type="number" required min="1" disabled={submitting}
+                  type="text" inputMode="numeric" pattern="[0-9]*" required disabled={submitting}
                   className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl focus:border-indigo-500 text-indigo-400 font-bold text-lg outline-none disabled:opacity-50"
                   value={formData.amount}
-                  onChange={e => setFormData({ ...formData, amount: e.target.value })}
+                  onChange={e => setFormData({ ...formData, amount: e.target.value.replace(/[^0-9]/g, '') })}
                 />
               </div>
 
@@ -878,11 +874,11 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-400 ml-1">KM Sblm (Opsional)</label>
-                  <input type="number" min="0" disabled={submitting} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none disabled:opacity-50" value={formData.kmBefore} onChange={e => setFormData({ ...formData, kmBefore: e.target.value })} />
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" disabled={submitting} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none disabled:opacity-50" value={formData.kmBefore} onChange={e => setFormData({ ...formData, kmBefore: e.target.value.replace(/[^0-9]/g, '') })} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="block text-xs font-bold text-slate-400 ml-1">KM Ssdh (Opsional)</label>
-                  <input type="number" min="0" disabled={submitting} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none disabled:opacity-50" value={formData.kmAfter} onChange={e => setFormData({ ...formData, kmAfter: e.target.value })} />
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" disabled={submitting} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm outline-none disabled:opacity-50" value={formData.kmAfter} onChange={e => setFormData({ ...formData, kmAfter: e.target.value.replace(/[^0-9]/g, '') })} />
                 </div>
               </div>
 
@@ -899,7 +895,7 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
                 <label className="block text-xs font-bold text-white ml-1">Ganti Foto Struk</label>
                 <div className={`relative border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center text-center transition-all ${receiptFile ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 bg-slate-950'}`}>
                   <input type="file" disabled={submitting} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:opacity-0 disabled:cursor-not-allowed" onChange={handleReceiptChange} />
-                  <span className="text-xl mb-1">{receiptFile ? '✅' : '🧾'}</span>
+                  <span className="mb-2">{receiptFile ? <CheckCircle2 className="w-6 h-6 text-emerald-400" /> : <Receipt className="w-6 h-6 text-slate-400" />}</span>
                   <p className={`text-[10px] font-bold ${receiptFile ? 'text-emerald-400' : 'text-slate-400'}`}>{receiptFile ? receiptFile.name : 'Ketuk untuk Timpa Foto'}</p>
                 </div>
               </div>
@@ -914,8 +910,8 @@ function EditClaimModal({ claimId, categories, onClose, onSuccess }: { claimId: 
                   ].map((item) => (
                     <div key={item.id} className={`relative border border-dashed rounded-xl p-2 flex flex-col items-center justify-center text-center cursor-pointer h-20 transition-all ${evidenceFiles[item.id - 1] ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-slate-600 bg-slate-950'}`}>
                       <input type="file" disabled={submitting} accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-not-allowed" onChange={(e) => handleEvidenceChange(e, item.id - 1)} />
-                      <span className={`text-lg mb-1 transition-all ${evidenceFiles[item.id - 1] ? '' : 'grayscale opacity-50'}`}>
-                        {evidenceFiles[item.id - 1] ? '✅' : '📸'}
+                      <span className={`mb-1 transition-all ${evidenceFiles[item.id - 1] ? '' : 'opacity-50'}`}>
+                        {evidenceFiles[item.id - 1] ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <Camera className="w-5 h-5 text-slate-400" />}
                       </span>
                       <p className={`text-[8px] font-bold uppercase tracking-wider leading-tight ${evidenceFiles[item.id - 1] ? 'text-emerald-400' : 'text-slate-500'}`}>
                         {item.label}
@@ -994,15 +990,14 @@ function ClaimDetailModal({ claimId, onClose }: { claimId: string, onClose: () =
     return configs[status as keyof typeof configs] || configs.PENDING;
   };
 
-  // Memetakan tipe lampiran ke Label Human Readable
   const getAttachmentLabel = (type: string) => {
     const labels = {
-      RECEIPT: '🧾 BON / STRUK',
-      EVIDENCE_1: '📸 KM SEBELUM',
-      EVIDENCE_2: '📸 KM SESUDAH',
-      EVIDENCE_3: '📸 EVIDEN TAMBAHAN'
+      RECEIPT: 'BON / STRUK',
+      EVIDENCE_1: 'KM SEBELUM',
+      EVIDENCE_2: 'KM SESUDAH',
+      EVIDENCE_3: 'EVIDEN TAMBAHAN'
     };
-    return labels[type as keyof typeof labels] || '📸 FOTO BUKTI';
+    return labels[type as keyof typeof labels] || 'FOTO BUKTI';
   };
 
   return (
@@ -1012,11 +1007,11 @@ function ClaimDetailModal({ claimId, onClose }: { claimId: string, onClose: () =
         <div className="px-6 py-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/20 shrink-0">
           <div>
             <h3 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
-              <span>📋</span> Detail Laporan Klaim
+              <List className="w-5 h-5 text-indigo-400" /> Detail Laporan Klaim
             </h3>
             <p className="text-xs text-slate-400 font-medium mt-1">Detail informasi pengajuan operasional Anda</p>
           </div>
-          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all">✖</button>
+          <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 text-slate-400 hover:text-white hover:bg-rose-500/20 transition-all"><X className="w-4 h-4" /></button>
         </div>
 
         {/* Body */}

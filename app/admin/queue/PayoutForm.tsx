@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { payoutTechnician } from '@/app/actions/admin';
-import toast from 'react-hot-toast'; // [1] Import library notifikasi
+import toast from 'react-hot-toast'; 
+import { Hourglass, Banknote } from 'lucide-react';
 
 export default function PayoutForm({
   technicianId,
@@ -37,13 +38,13 @@ export default function PayoutForm({
 
       // [3] Tampilkan hasil dengan notifikasi cantik
       if (res.success) {
-        toast.success(res.message || '✅ Pencairan Berhasil!');
+        toast.success(res.message || 'Pencairan Berhasil!');
       } else {
-        toast.error(res.message || '❌ Gagal mencairkan dana.');
+        toast.error(res.message || 'Gagal mencairkan dana.');
       }
     } catch (error) {
       toast.dismiss(loadingToast);
-      toast.error('⚠️ Terjadi kesalahan sistem.');
+      toast.error('Terjadi kesalahan sistem.');
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +63,7 @@ export default function PayoutForm({
           }`}
       >
         <span className={isDisabled || isLoading ? '' : 'group-hover:animate-bounce'}>
-          {isLoading ? '⏳' : '💰'}
+          {isLoading ? <Hourglass className="w-5 h-5" /> : <Banknote className="w-5 h-5" />}
         </span>
         {isLoading ? 'Memproses...' : `Cairkan ${formattedAmount}`}
       </button>

@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { addLedgerEntry, deleteLedgerEntry, updateLedgerEntry } from '@/app/actions/ledger';
+import { Search, Plus } from 'lucide-react';
 
 type LedgerEntry = {
     id: string;
@@ -113,13 +114,13 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
                     onClick={() => setIsAddingMode(true)}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-xl transition-colors shadow-lg shadow-indigo-900/40 flex items-center gap-2"
                 >
-                    <span>➕</span> Tambah Saldo (Top-Up)
+                    <Plus className="w-4 h-4" /> Tambah Saldo (Top-Up)
                 </button>
             </div>
 
             {/* SEARCH BAR */}
             <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Search className="w-5 h-5" /></span>
                 <input
                     type="text"
                     value={searchQuery}
@@ -231,7 +232,7 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
                             <form id="addLedgerForm" onSubmit={handleCreateTopUp} className="space-y-5">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nominal Bantuan Tunai (Rp)</label>
-                                    <input type="number" name="amount" min="1" required disabled={isSubmitting} placeholder="Contoh: 1500000" className="w-full px-4 py-3 border border-emerald-500/50 bg-emerald-500/5 rounded-xl text-emerald-400 font-black text-xl outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all placeholder:text-emerald-900/40 disabled:opacity-50" />
+                                    <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} name="amount" min="1" required disabled={isSubmitting} placeholder="Contoh: 1500000" className="w-full px-4 py-3 border border-emerald-500/50 bg-emerald-500/5 rounded-xl text-emerald-400 font-black text-xl outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all placeholder:text-emerald-900/40 disabled:opacity-50" />
                                 </div>
 
                                 <div>
@@ -282,7 +283,7 @@ export default function ManageLedgerTable({ ledgers, currentBalance }: { ledgers
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Koreksi Nominal (Rp)</label>
-                                    <input type="number" name="amount" min="1" defaultValue={editingLedger.amount} disabled={isUpdating} required className="w-full px-4 py-3 border border-indigo-500/50 bg-indigo-500/5 rounded-xl text-indigo-400 font-black text-xl outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all placeholder:text-indigo-900/40 disabled:opacity-50" />
+                                    <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} name="amount" min="1" defaultValue={editingLedger.amount} disabled={isUpdating} required className="w-full px-4 py-3 border border-indigo-500/50 bg-indigo-500/5 rounded-xl text-indigo-400 font-black text-xl outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-all placeholder:text-indigo-900/40 disabled:opacity-50" />
                                 </div>
 
                                 <div>

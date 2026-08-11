@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { loginUser } from '@/app/actions/auth';
 import { useRouter } from 'next/navigation';
 import VandizaBrand from '@/app/components/VandizaBrand';
+import { Lock, AlertTriangle } from 'lucide-react';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -97,7 +98,7 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-center mb-10 mt-4">
           <div className="w-20 h-20 mx-auto bg-slate-950 rounded-2xl shadow-inner shadow-black/50 flex items-center justify-center mb-6 border border-slate-800 transform transition-transform hover:scale-105 hover:border-indigo-500/50 hover:shadow-indigo-500/20 duration-300">
-            <span className="text-4xl">🔐</span>
+            <Lock className="w-10 h-10 text-indigo-400" />
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Masuk Sistem</h1>
           <p className="text-sm text-slate-400 mt-2 font-medium tracking-wide">Aplikasi Operasional Internal</p>
@@ -108,7 +109,7 @@ export default function LoginPage() {
           <div className={`p-4 mb-6 border rounded-2xl text-sm font-bold flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${
             isLocked ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
           }`}>
-            <span className="text-xl">⚠️</span> {message}
+            <AlertTriangle className="w-6 h-6 shrink-0" /> {message}
           </div>
         )}
 

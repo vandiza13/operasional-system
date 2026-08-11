@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 import ReportFilter from './ReportFilter';
 import ExportButton from './ExportButton';
+import { FileText, Car, Inbox } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,7 +118,7 @@ export default async function ReportPage(props: {
             <div className="bg-slate-800/50 rounded-3xl border border-slate-700/50 shadow-xl overflow-hidden backdrop-blur-sm">
                 <div className="p-5 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/80">
                     <h3 className="font-bold text-white flex items-center gap-2">
-                        <span className="text-indigo-400">📄</span> Preview Data
+                        <FileText className="w-5 h-5 text-indigo-400" /> Preview Data
                     </h3>
                     <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-700">
                         {expenses.length} Baris
@@ -171,8 +172,8 @@ export default async function ReportPage(props: {
                                         <td className="px-5 py-4 align-top whitespace-nowrap">
                                             <div className="flex flex-col gap-1">
                                                 {expense.vehiclePlate ? (
-                                                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 w-max">
-                                                        🚗 {expense.vehiclePlate}
+                                                    <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 w-max flex items-center">
+                                                        <Car className="w-3 h-3 mr-1" /> {expense.vehiclePlate}
                                                     </span>
                                                 ) : (
                                                     <span className="text-[10px] text-slate-600">-</span>
@@ -203,8 +204,8 @@ export default async function ReportPage(props: {
                                     {/* Sesuaikan colSpan dari 7 menjadi 5 */}
                                     <td colSpan={5} className="px-5 py-12 text-center text-slate-500">
                                         <div className="flex flex-col items-center justify-center gap-2">
-                                            <span className="text-4xl">📭</span>
-                                            <p className="font-medium">Tidak ada data di rentang waktu dan status ini.</p>
+                                            <Inbox className="w-10 h-10 text-slate-500" />
+                                            <p className="font-medium mt-2">Tidak ada data di rentang waktu dan status ini.</p>
                                         </div>
                                     </td>
                                 </tr>

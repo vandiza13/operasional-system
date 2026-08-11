@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import EditUserModal from './EditUserModal';
+import { Crown, UserCog, Wrench, Search, Inbox, Lock, Edit2, Key, Trash2 } from 'lucide-react';
 
 interface User {
   id: string;
@@ -104,11 +105,11 @@ export default function UsersTable({
   const getRoleBadge = (role: string) => {
     switch (role) {
       case 'SUPER_ADMIN':
-        return <span className="bg-rose-500/10 text-rose-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-rose-500/20">👑 Super Admin</span>;
+        return <span className="bg-rose-500/10 text-rose-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-rose-500/20 flex items-center w-fit"><Crown className="w-3 h-3 mr-1" /> Super Admin</span>;
       case 'ADMIN':
-        return <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-indigo-500/20">👨‍💻 Admin</span>;
+        return <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-indigo-500/20 flex items-center w-fit"><UserCog className="w-3 h-3 mr-1" /> Admin</span>;
       case 'TECHNICIAN':
-        return <span className="bg-slate-700/50 text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-600/50">👷‍♂️ Technician</span>;
+        return <span className="bg-slate-700/50 text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-600/50 flex items-center w-fit"><Wrench className="w-3 h-3 mr-1" /> Technician</span>;
       default:
         return <span className="bg-slate-700/50 text-slate-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-slate-600/50">{role}</span>;
     }
@@ -125,7 +126,7 @@ export default function UsersTable({
       {/* SEARCH BAR */}
       <div className="p-4 pb-0">
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Search className="w-5 h-5" /></span>
           <input
             type="text"
             value={searchQuery}
@@ -154,7 +155,7 @@ export default function UsersTable({
             {filteredUsers.length === 0 ? (
               <tr>
                 <td colSpan={3} className="p-16 text-center">
-                  <div className="text-5xl mb-4 grayscale opacity-20">📭</div>
+                  <Inbox className="w-12 h-12 mx-auto text-slate-500 opacity-50 mb-4" />
                   <p className="text-slate-400 font-bold text-lg">No users found</p>
                   <p className="text-slate-500 text-sm mt-1">Add your first user using the form on the left.</p>
                 </td>
@@ -167,7 +168,7 @@ export default function UsersTable({
                       <p className="font-extrabold text-white text-sm">{u.name}</p>
                       {isProtectedUser(u.email) && (
                         <span className="bg-amber-500/10 text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded border border-amber-500/20" title="Protected account">
-                          🔒
+                          <Lock className="w-3 h-3" />
                         </span>
                       )}
                     </div>
@@ -181,27 +182,27 @@ export default function UsersTable({
                       <button
                         onClick={() => setEditingUser(u)}
                         disabled={loading !== null}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50 flex items-center"
                       >
-                        ✏️ Edit
+                        <Edit2 className="w-3 h-3 mr-1" /> Edit
                       </button>
                       <button
                         onClick={() => handleResetPassword(u.id)}
                         disabled={loading !== null}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition-all disabled:opacity-50"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/20 transition-all disabled:opacity-50 flex items-center"
                       >
-                        🔑 Reset
+                        <Key className="w-3 h-3 mr-1" /> Reset
                       </button>
                       <button
                         onClick={() => handleDelete(u.id, u.name)}
                         disabled={loading !== null || isProtectedUser(u.email)}
                         title={isProtectedUser(u.email) ? 'Protected account cannot be deleted' : 'Delete user'}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-30 ${isProtectedUser(u.email)
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-30 flex items-center ${isProtectedUser(u.email)
                           ? 'bg-slate-700/30 text-slate-500 border border-slate-600/30 cursor-not-allowed'
                           : 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20'
                           }`}
                       >
-                        {isProtectedUser(u.email) ? '🔒 Locked' : '🗑️ Delete'}
+                        {isProtectedUser(u.email) ? <><Lock className="w-3 h-3 mr-1" /> Locked</> : <><Trash2 className="w-3 h-3 mr-1" /> Delete</>}
                       </button>
                     </div>
                   </td>

@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
 import UsersTable from '@/app/components/UsersTable';
 import { editUser, resetUserPassword, deleteUser } from '@/app/actions/user';
+import { Crown, Plus } from 'lucide-react';
 
 // WAJIB: Agar Next.js selalu menarik data terbaru (tidak di-cache)
 export const dynamic = 'force-dynamic';
@@ -73,8 +74,8 @@ export default async function UsersManagementPage() {
       {/* HEADER PAGE (DARK MODE - VIP THEME) */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <span className="text-3xl">👑</span> User Access Management
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Crown className="w-8 h-8 text-rose-400" /> User Access Management
           </h2>
           <p className="text-sm text-rose-400/80 font-medium mt-1">
             Super Admin Only Area. Manage Admin registration and Access Rights.
@@ -93,7 +94,7 @@ export default async function UsersManagementPage() {
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-rose-500 to-orange-600"></div>
 
             <h2 className="text-xl font-extrabold text-white mb-1 flex items-center">
-              <span className="bg-rose-500/20 text-rose-400 p-2 rounded-xl mr-3 shadow-sm border border-rose-500/20">➕</span> Add System User
+              <span className="bg-rose-500/20 p-2 rounded-xl mr-3 shadow-sm border border-rose-500/20"><Plus className="w-5 h-5 text-rose-400" /></span> Add System User
             </h2>
             <p className="text-sm text-slate-400 mb-6 font-medium">Register new Admin or Super Admin.</p>
 

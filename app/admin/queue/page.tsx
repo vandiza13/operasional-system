@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { getCurrentBalance } from '@/app/actions/admin';
 import QueueListClient from './QueueListClient'; 
+import { Landmark } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,8 +51,8 @@ export default async function QueuePage() {
       {/* HEADER PAGE */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <span className="text-3xl">🏦</span> Antrean Pencairan Dana
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Landmark className="w-8 h-8 text-blue-400" /> Antrean Pencairan Dana
           </h2>
           <p className="text-sm text-slate-400 font-medium mt-1">
             Pilih dan cairkan bon sesuai ketersediaan kas. Fitur centang otomatis menyesuaikan total bayar.

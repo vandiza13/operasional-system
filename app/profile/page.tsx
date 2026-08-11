@@ -3,6 +3,7 @@ import { updateMyProfile, updateMyPassword } from '@/app/actions/profile';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import ProfileForm from './ProfileForm';
+import { User } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export default async function ProfilePage() {
             <header className="bg-slate-950 sticky top-0 z-20 border-b border-slate-800/60 shadow-lg px-5 py-4 flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <div className="bg-gradient-to-br from-indigo-500 to-violet-600 p-2 rounded-xl shadow-lg shadow-indigo-900/50">
-                        <span className="text-xl leading-none">👤</span>
+                        <User className="w-6 h-6 text-white" />
                     </div>
                     <div>
                         <h1 className="text-xl font-black text-white tracking-tight leading-none">Profil <span className="text-indigo-400">Saya</span></h1>

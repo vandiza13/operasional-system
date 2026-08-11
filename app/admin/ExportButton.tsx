@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { Loader2, FileSpreadsheet } from 'lucide-react';
 
 export default function ExportButton() {
   const searchParams = useSearchParams();
@@ -36,11 +37,11 @@ export default function ExportButton() {
     >
       {isDownloading ? (
         <>
-          <span className="animate-spin">⏳</span> Mengunduh...
+          <Loader2 className="w-4 h-4 animate-spin" /> Mengunduh...
         </>
       ) : (
         <>
-          <span>📊</span> Export Excel
+          <FileSpreadsheet className="w-4 h-4" /> Export Excel
         </>
       )}
     </button>

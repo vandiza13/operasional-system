@@ -55,7 +55,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} relative min-h-screen antialiased text-slate-100 selection:bg-indigo-500/30 selection:text-white`}>
+        {/* Ambient Glowing Background for Bespoke Premium Look */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none z-[-1]">
+          <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/15 rounded-full blur-[140px] mix-blend-screen opacity-70 animate-pulse-slow" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-violet-600/15 rounded-full blur-[140px] mix-blend-screen opacity-70" />
+        </div>
         <RegisterSW />
         <Toaster position="top-right" /> {/* [BARU] Notifikasi muncul di kanan atas */}
         {children}

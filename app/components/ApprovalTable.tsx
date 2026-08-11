@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
+import { PartyPopper, Search, User, Clock, Receipt, Download, Camera, Edit2, XCircle } from 'lucide-react';
 
 interface Attachment {
   id: string;
@@ -167,8 +168,8 @@ export default function ApprovalTable({
 
   if (expenses.length === 0) {
     return (
-      <div className="bg-slate-800/50 rounded-3xl shadow-lg border border-slate-700/50 p-16 text-center backdrop-blur-sm">
-        <div className="text-6xl mb-4 grayscale opacity-20">🎉</div>
+      <div className="bg-black/20 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/5 p-16 text-center">
+        <PartyPopper className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-50" />
         <p className="text-slate-400 font-bold text-xl">All Clear!</p>
         <p className="text-slate-500 text-sm mt-2">All reports have been verified.</p>
       </div>
@@ -179,13 +180,13 @@ export default function ApprovalTable({
     <div className="space-y-4">
       {/* SEARCH BAR */}
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Search className="w-5 h-5" /></span>
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Cari nama teknisi, deskripsi, NIK, atau nominal..."
-          className="w-full pl-11 pr-4 py-3 bg-slate-800/60 border border-slate-700/50 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+          className="w-full pl-11 pr-4 py-3 bg-black/20 backdrop-blur-md border border-white/10 rounded-xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-inner"
         />
         {searchQuery && (
           <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-xs">✕</button>
@@ -232,13 +233,13 @@ export default function ApprovalTable({
         return (
           <div
             key={item.id}
-            className="bg-slate-800/50 rounded-2xl shadow-lg border border-slate-700/50 overflow-hidden backdrop-blur-sm hover:border-slate-600/50 transition-colors"
+            className="bg-black/20 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/5 overflow-hidden hover:border-white/10 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] transition-all duration-300"
           >
             {/* Header Card */}
-            <div className="bg-slate-900/50 px-6 py-4 border-b border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-white/5 px-6 py-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-500/20 rounded-xl flex items-center justify-center text-lg border border-indigo-500/30">
-                  👷‍♂️
+                  <User className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div>
                   <p className="font-extrabold text-white text-sm">{item.user?.name || 'Anonymous'}</p>
@@ -261,8 +262,8 @@ export default function ApprovalTable({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-amber-500/20">
-                  ⏳ Pending
+                <span className="bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-amber-500/20 flex items-center">
+                  <Clock className="w-3 h-3 mr-1" /> Pending
                 </span>
               </div>
             </div>
@@ -275,16 +276,16 @@ export default function ApprovalTable({
                 <p className="text-sm font-medium text-slate-300 leading-relaxed">
                   {item.description || 'No description'}
                 </p>
-                <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                <div className="bg-black/40 p-2 rounded border border-white/5 shadow-inner">
                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">Plat Nomor</p>
                   <p className="text-sm font-bold text-white text-center mt-0.5">{item.vehiclePlate ?? '-'}</p>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-700/50 grid grid-cols-2 gap-2">
-                  <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                  <div className="bg-black/40 p-2 rounded border border-white/5 shadow-inner">
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sebelum</p>
                     <p className="text-sm font-bold text-white text-center mt-0.5">{item.kmBefore ?? '-'}</p>
                   </div>
-                  <div className="bg-slate-900/50 p-2 rounded border border-slate-700/50">
+                  <div className="bg-black/40 p-2 rounded border border-white/5 shadow-inner">
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">KM Sesudah</p>
                     <p className="text-sm font-bold text-white text-center mt-0.5">{item.kmAfter ?? '-'}</p>
                   </div>
@@ -297,41 +298,41 @@ export default function ApprovalTable({
                 <div className="flex flex-col gap-2">
                   {receipt && (
                     <div className="flex gap-2">
-                      <button onClick={() => setSelectedImg(receipt)} className="flex-1 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-indigo-500/30 transition-all text-left truncate">
-                        🧾 Foto Bon/Struk (Wajib)
+                      <button onClick={() => setSelectedImg(receipt)} className="flex-1 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/40 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-indigo-500/30 transition-all text-left truncate flex items-center">
+                        <Receipt className="w-4 h-4 mr-2" /> Foto Bon/Struk (Wajib)
                       </button>
-                      <button onClick={() => handleDownload(receipt, `Bon_${item.id}.jpg`)} className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 flex items-center justify-center transition-all" title="Download">
-                        ⬇️
+                      <button onClick={() => handleDownload(receipt, `Bon_${item.id}.jpg`)} className="bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 flex items-center justify-center transition-all" title="Download">
+                        <Download className="w-4 h-4" />
                       </button>
                     </div>
                   )}
                   {ev1 && (
                     <div className="flex gap-2">
-                      <button onClick={() => setSelectedImg(ev1)} className="flex-1 bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 transition-all text-left truncate">
-                        📸 KM Sebelum (Wajib)
+                      <button onClick={() => setSelectedImg(ev1)} className="flex-1 bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all text-left truncate flex items-center shadow-inner">
+                        <Camera className="w-4 h-4 mr-2" /> KM Sebelum (Wajib)
                       </button>
-                      <button onClick={() => handleDownload(ev1, `KMSebelum_${item.id}.jpg`)} className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 flex items-center justify-center transition-all" title="Download">
-                        ⬇️
+                      <button onClick={() => handleDownload(ev1, `KMSebelum_${item.id}.jpg`)} className="bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 flex items-center justify-center transition-all" title="Download">
+                        <Download className="w-4 h-4" />
                       </button>
                     </div>
                   )}
                   {ev2 && (
                     <div className="flex gap-2">
-                      <button onClick={() => setSelectedImg(ev2)} className="flex-1 bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 transition-all text-left truncate">
-                        📸 KM Sesudah (Wajib)
+                      <button onClick={() => setSelectedImg(ev2)} className="flex-1 bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all text-left truncate flex items-center shadow-inner">
+                        <Camera className="w-4 h-4 mr-2" /> KM Sesudah (Wajib)
                       </button>
-                      <button onClick={() => handleDownload(ev2, `KMSesudah_${item.id}.jpg`)} className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 flex items-center justify-center transition-all" title="Download">
-                        ⬇️
+                      <button onClick={() => handleDownload(ev2, `KMSesudah_${item.id}.jpg`)} className="bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 flex items-center justify-center transition-all" title="Download">
+                        <Download className="w-4 h-4" />
                       </button>
                     </div>
                   )}
                   {ev3 && (
                     <div className="flex gap-2">
-                      <button onClick={() => setSelectedImg(ev3)} className="flex-1 bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 transition-all text-left truncate">
-                        📸 Eviden Tambahan
+                      <button onClick={() => setSelectedImg(ev3)} className="flex-1 bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 transition-all text-left truncate flex items-center shadow-inner">
+                        <Camera className="w-4 h-4 mr-2" /> Eviden Tambahan
                       </button>
-                      <button onClick={() => handleDownload(ev3, `EvidenTambahan_${item.id}.jpg`)} className="bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-slate-600/50 flex items-center justify-center transition-all" title="Download">
-                        ⬇️
+                      <button onClick={() => handleDownload(ev3, `EvidenTambahan_${item.id}.jpg`)} className="bg-black/20 text-slate-300 hover:bg-white/10 hover:text-white px-3 py-2 rounded-lg text-xs font-bold border border-white/5 flex items-center justify-center transition-all" title="Download">
+                        <Download className="w-4 h-4" />
                       </button>
                     </div>
                   )}
@@ -423,14 +424,14 @@ export default function ApprovalTable({
                         disabled={loading !== null}
                         className="bg-indigo-600/80 hover:bg-indigo-500 text-white px-2 py-2.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                       >
-                        ✏️ Edit
+                        <Edit2 className="w-3 h-3" /> Edit
                       </button>
                       <button
                         onClick={() => startReject(item)}
                         disabled={loading !== null}
                         className="bg-rose-600/80 hover:bg-rose-500 text-white px-2 py-2.5 rounded-lg text-[10px] font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50"
                       >
-                        🚫 Reject
+                        <XCircle className="w-3 h-3" /> Reject
                       </button>
                     </div>
                   </div>

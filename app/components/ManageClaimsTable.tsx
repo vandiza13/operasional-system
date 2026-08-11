@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { deleteExpensePermanent, updateExpenseRecord } from '@/app/actions/manage';
+import { Search, Calendar, Car } from 'lucide-react';
 
 type Expense = {
     id: string;
@@ -103,7 +104,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
             {/* SEARCH BAR */}
             <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Search className="w-5 h-5" /></span>
                 <input
                     type="text"
                     value={searchQuery}
@@ -143,8 +144,8 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                             <tr key={expense.id} className="hover:bg-slate-800/30 transition-colors">
                                 <td className="px-5 py-3">
                                     {/* [BARU] Menampilkan Tgl Nota & Input sekaligus */}
-                                    <div className="font-black text-indigo-400 text-xs whitespace-nowrap mb-0.5">
-                                        📅 {formatNotaDate(expense.expenseDate)}
+                                    <div className="font-black text-indigo-400 text-xs whitespace-nowrap mb-0.5 flex items-center">
+                                        <Calendar className="w-3 h-3 mr-1" /> {formatNotaDate(expense.expenseDate)}
                                     </div>
                                     <div className="text-[9px] text-slate-500 font-medium whitespace-nowrap">
                                         Input: {formatDate(expense.createdAt)}
@@ -159,7 +160,7 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
                                     {expense.description || '-'}
                                     {/* Tampilkan Plat Kendaraan di Tabel */}
                                     {expense.vehiclePlate && (
-                                        <div className="text-[9px] font-bold text-indigo-400 mt-1 uppercase">🚗 {expense.vehiclePlate}</div>
+                                        <div className="text-[9px] font-bold text-indigo-400 mt-1 uppercase flex items-center"><Car className="w-3 h-3 mr-1" /> {expense.vehiclePlate}</div>
                                     )}
                                 </td>
                                 <td className="px-5 py-3 font-bold text-white">{formatRp(Number(expense.amount))}</td>
@@ -241,17 +242,17 @@ export default function ManageClaimsTable({ expenses, categories }: { expenses: 
 
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Nominal (Rp)</label>
-                                    <input type="number" name="amount" defaultValue={editingClaim.amount} required disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black text-lg outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
+                                    <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} name="amount" defaultValue={editingClaim.amount} required disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black text-lg outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sebelum</label>
-                                        <input type="number" name="kmBefore" defaultValue={editingClaim.kmBefore ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
+                                        <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} name="kmBefore" defaultValue={editingClaim.kmBefore ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">KM Sesudah</label>
-                                        <input type="number" name="kmAfter" defaultValue={editingClaim.kmAfter ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
+                                        <input type="text" inputMode="numeric" pattern="[0-9]*" onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }} name="kmAfter" defaultValue={editingClaim.kmAfter ?? ''} disabled={isUpdating} className="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-black outline-none focus:border-indigo-500 transition-all disabled:opacity-50" />
                                     </div>
                                 </div>
 

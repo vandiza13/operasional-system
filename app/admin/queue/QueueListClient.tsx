@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { payoutTechnician } from '@/app/actions/admin';
 import QueueEvidenceViewer from './QueueEvidenceViewer';
+import { ChevronDown, Car, Hourglass, Banknote, AlertTriangle, CheckCircle2, Search, X } from 'lucide-react';
 
 const formatRupiah = (angka: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
 const formatDate = (date: Date | string) => new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date));
@@ -67,7 +68,7 @@ function QueueRowDesktop({ item, index, currentBalance }: { item: any, index: nu
             <td className="p-4 min-w-[350px] whitespace-normal">
                 <details className="group cursor-pointer">
                     <summary className="text-indigo-400 hover:text-indigo-300 font-bold text-xs bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-2 rounded-lg w-max transition-colors outline-none list-none flex items-center gap-2">
-                        Pilih & Lihat Rincian <span>⬇</span>
+                        Pilih & Lihat Rincian <ChevronDown className="w-4 h-4" />
                     </summary>
                     <div className="mt-3 bg-slate-900/50 p-3.5 rounded-xl border border-slate-700/50 shadow-inner">
                         {/* Tombol Pilih Semua */}
@@ -86,7 +87,7 @@ function QueueRowDesktop({ item, index, currentBalance }: { item: any, index: nu
                                         <input type="checkbox" checked={selectedIds.includes(e.id)} onChange={() => handleToggle(e.id)} className="mt-0.5 w-4 h-4 rounded accent-indigo-500 cursor-pointer flex-shrink-0" />
                                         <div className="flex flex-col flex-1">
                                             <span className="font-medium text-white line-clamp-2 group-hover/item:text-indigo-300 transition-colors" title={e.description}>{e.description || 'Tanpa Keterangan'}</span>
-                                            {e.vehiclePlate && <span className="text-[9px] font-black text-indigo-400 mt-0.5 uppercase tracking-wider">🚗 {e.vehiclePlate}</span>}
+                                            {e.vehiclePlate && <span className="text-[9px] font-black text-indigo-400 mt-0.5 uppercase tracking-wider flex items-center"><Car className="w-3 h-3 mr-1" /> {e.vehiclePlate}</span>}
                                             <div className="flex items-center gap-2 mt-1.5" onClick={(ev) => ev.preventDefault()}>
                                                 <span className="text-[9px] text-slate-500 font-bold">{formatDate(e.expenseDate)}</span>
                                                 <QueueEvidenceViewer attachments={e.attachments} />
@@ -108,10 +109,10 @@ function QueueRowDesktop({ item, index, currentBalance }: { item: any, index: nu
             </td>
             <td className="p-4 pr-8">
                 <button onClick={handlePayout} disabled={isDisabled || isLoading} className={`w-full px-4 py-3.5 rounded-xl text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2 group ${isDisabled || isLoading ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/50 active:scale-95'}`}>
-                    <span className={isDisabled || isLoading ? '' : 'group-hover:animate-bounce'}>{isLoading ? '⏳' : '💰'}</span>
+                    <span className={isDisabled || isLoading ? '' : 'group-hover:animate-bounce'}>{isLoading ? <Hourglass className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}</span>
                     {isLoading ? 'Memproses...' : `Cairkan Dana`}
                 </button>
-                {!isBalanceSufficient && selectedIds.length > 0 && <p className="text-[10px] text-red-400 font-bold mt-2 text-center animate-pulse">⚠️ Saldo Kas Tidak Cukup!</p>}
+                {!isBalanceSufficient && selectedIds.length > 0 && <p className="text-[10px] text-red-400 font-bold mt-2 text-center flex items-center justify-center animate-pulse"><AlertTriangle className="w-3 h-3 mr-1" /> Saldo Kas Tidak Cukup!</p>}
                 {selectedIds.length === 0 && <p className="text-[10px] text-slate-500 font-medium mt-2 text-center">Pilih minimal 1 bon</p>}
             </td>
         </tr>
@@ -155,8 +156,8 @@ function QueueCardMobile({ item, index, currentBalance }: { item: any, index: nu
     };
 
     return (
-        <div className="bg-slate-900/80 rounded-2xl border border-slate-700/80 shadow-lg flex flex-col overflow-hidden relative">
-            <div className="bg-slate-950 px-5 py-3 border-b border-slate-700/50 flex justify-between items-center">
+        <div className="bg-black/20 backdrop-blur-2xl rounded-2xl border border-white/5 shadow-2xl flex flex-col overflow-hidden relative">
+            <div className="bg-white/5 px-5 py-3 border-b border-white/5 flex justify-between items-center">
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Antrean #{index + 1}</span>
                 <span className="bg-blue-500/10 text-blue-400 px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-blue-500/20">{item.expenses.length} Bon Masuk</span>
             </div>
@@ -164,12 +165,12 @@ function QueueCardMobile({ item, index, currentBalance }: { item: any, index: nu
                 <h3 className="font-extrabold text-white text-lg">{item.technicianName}</h3>
                 <p className="text-xs text-slate-400 font-semibold">NIK: {item.technicianNik}</p>
             </div>
-            <div className="p-5 bg-slate-900/40 border-b border-slate-800/60">
+            <div className="p-5 bg-transparent border-b border-white/5">
                 <details className="group cursor-pointer">
                     <summary className="text-indigo-400 hover:text-indigo-300 font-bold text-xs bg-indigo-500/10 hover:bg-indigo-500/20 px-4 py-2.5 rounded-xl w-full flex items-center justify-between transition-colors outline-none list-none shadow-sm">
-                        Pilih Rincian Bon <span className="text-lg group-open:rotate-180 transition-transform">▾</span>
+                        Pilih Rincian Bon <ChevronDown className="w-4 h-4 group-open:rotate-180 transition-transform" />
                     </summary>
-                    <div className="mt-3 bg-slate-950 p-4 rounded-xl border border-slate-800 shadow-inner">
+                    <div className="mt-3 bg-black/40 p-4 rounded-xl border border-white/5 shadow-inner">
                         <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                             <label className="flex items-center gap-3 cursor-pointer text-xs font-bold text-slate-300">
                                 <input type="checkbox" checked={selectedIds.length === item.expenses.length} onChange={handleToggleAll} className="w-5 h-5 rounded accent-indigo-500" />
@@ -183,13 +184,13 @@ function QueueCardMobile({ item, index, currentBalance }: { item: any, index: nu
                                         <input type="checkbox" checked={selectedIds.includes(e.id)} onChange={() => handleToggle(e.id)} className="mt-0.5 w-5 h-5 rounded accent-indigo-500 flex-shrink-0" />
                                         <div className="flex flex-col flex-1 pt-0.5">
                                             <span className="font-medium leading-relaxed text-white">{e.description || 'Tidak ada keterangan'}</span>
-                                            {e.vehiclePlate && <span className="text-[10px] font-black text-indigo-400 mt-1 uppercase tracking-wider">🚗 Plat: {e.vehiclePlate}</span>}
+                                            {e.vehiclePlate && <span className="text-[10px] font-black text-indigo-400 mt-1 uppercase tracking-wider flex items-center"><Car className="w-3 h-3 mr-1" /> Plat: {e.vehiclePlate}</span>}
                                             <div className="flex items-center gap-3 mt-1.5" onClick={ev => ev.preventDefault()}>
                                                 <span className="text-[9px] text-slate-500 font-semibold">{formatDate(e.expenseDate)}</span>
                                                 <QueueEvidenceViewer attachments={e.attachments} />
                                             </div>
                                         </div>
-                                        <span className="font-bold text-slate-300 bg-slate-900 px-2 py-1 rounded border border-slate-700/50 mt-0.5">{formatRupiah(Number(e.amount))}</span>
+                                        <span className="font-bold text-slate-300 bg-white/5 px-2 py-1 rounded border border-white/10 mt-0.5">{formatRupiah(Number(e.amount))}</span>
                                     </label>
                                 </li>
                             ))}
@@ -207,10 +208,10 @@ function QueueCardMobile({ item, index, currentBalance }: { item: any, index: nu
                 </div>
                 <div>
                     <button onClick={handlePayout} disabled={isDisabled || isLoading} className={`w-full px-4 py-3.5 rounded-xl text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2 group ${isDisabled || isLoading ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700/50' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/50 active:scale-95'}`}>
-                        <span className={isDisabled || isLoading ? '' : 'group-hover:animate-bounce'}>{isLoading ? '⏳' : '💰'}</span>
+                        <span className={isDisabled || isLoading ? '' : 'group-hover:animate-bounce'}>{isLoading ? <Hourglass className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}</span>
                         {isLoading ? 'Memproses...' : `Cairkan Dana`}
                     </button>
-                    {!isBalanceSufficient && selectedIds.length > 0 && <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5 flex justify-center gap-2"><span className="animate-pulse">⚠️</span><span className="text-[10px] font-bold text-red-400">Saldo Kas Tidak Mencukupi</span></div>}
+                    {!isBalanceSufficient && selectedIds.length > 0 && <div className="mt-3 bg-red-500/10 border border-red-500/20 rounded-xl p-2.5 flex justify-center gap-2"><AlertTriangle className="w-4 h-4 text-red-400 animate-pulse" /><span className="text-[10px] font-bold text-red-400">Saldo Kas Tidak Mencukupi</span></div>}
                 </div>
             </div>
         </div>
@@ -245,8 +246,8 @@ export default function QueueListClient({ payoutsArray, currentBalance }: { payo
 
     if (payoutsArray.length === 0) {
         return (
-            <div className="p-16 text-center bg-slate-900/50 rounded-3xl border border-slate-800">
-                <div className="text-5xl mb-4 grayscale opacity-20">💸</div>
+            <div className="p-16 text-center bg-black/20 backdrop-blur-xl rounded-3xl border border-white/5">
+                <CheckCircle2 className="w-12 h-12 mx-auto text-slate-500 opacity-20 mb-4" />
                 <p className="text-slate-400 font-bold text-lg">Antrean Bersih!</p>
                 <p className="text-slate-500 text-sm mt-1">Tidak ada hutang, semua dana sukses dicairkan.</p>
             </div>
@@ -257,7 +258,7 @@ export default function QueueListClient({ payoutsArray, currentBalance }: { payo
         <div className="p-4 sm:p-6 space-y-5">
             {/* COLUMN SEARCH BAR */}
             <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Search className="w-5 h-5" /></span>
                 <input
                     type="text"
                     value={searchQuery}
@@ -266,7 +267,7 @@ export default function QueueListClient({ payoutsArray, currentBalance }: { payo
                     className="w-full pl-11 pr-10 py-3.5 bg-slate-900/60 border border-slate-700/50 rounded-2xl text-sm text-white placeholder:text-slate-500 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all shadow-inner"
                 />
                 {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-sm">✕</button>
+                    <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors text-sm"><X className="w-4 h-4" /></button>
                 )}
             </div>
             {searchQuery && (
@@ -275,7 +276,7 @@ export default function QueueListClient({ payoutsArray, currentBalance }: { payo
 
             {filteredPayouts.length === 0 ? (
                 <div className="p-12 text-center bg-slate-900/20 rounded-2xl border border-dashed border-slate-800">
-                    <div className="text-4xl mb-3 grayscale opacity-30">🔍</div>
+                    <Search className="w-10 h-10 mx-auto text-slate-500 opacity-30 mb-3" />
                     <p className="text-slate-400 font-bold text-base">Antrean Tidak Ditemukan</p>
                     <p className="text-slate-500 text-xs mt-1">Tidak ada data antrean yang cocok dengan pencarian "{searchQuery}"</p>
                 </div>

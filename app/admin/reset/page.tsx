@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
+import { Trash2, BarChart3, XCircle, AlertTriangle } from 'lucide-react';
 
 interface DatabaseStatus {
   success: boolean;
@@ -78,8 +79,8 @@ export default function ResetPage() {
       {/* HEADER PAGE */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <span className="text-3xl">🗑️</span> Manajemen Database
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Trash2 className="w-8 h-8 text-rose-500" /> Manajemen Database
           </h2>
           <p className="text-sm text-slate-400 font-medium mt-1">
             Panel kontrol untuk monitoring dan reset database sistem.
@@ -92,7 +93,7 @@ export default function ResetPage() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
 
         <h3 className="text-xl font-extrabold text-white mb-6 flex items-center gap-2">
-          <span className="bg-indigo-500/20 text-indigo-400 p-2 rounded-xl border border-indigo-500/20">📊</span>
+          <span className="bg-indigo-500/20 p-2 rounded-xl border border-indigo-500/20"><BarChart3 className="w-6 h-6 text-indigo-400" /></span>
           Status Database
         </h3>
 
@@ -150,7 +151,7 @@ export default function ResetPage() {
         ) : (
           <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
             <p className="text-rose-400 font-bold flex items-center gap-2">
-              <span>❌</span> Error: {status?.message}
+              <XCircle className="w-5 h-5" /> Error: {status?.message}
             </p>
           </div>
         )}
@@ -161,7 +162,7 @@ export default function ResetPage() {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-orange-500"></div>
 
         <h3 className="text-xl font-extrabold text-white mb-4 flex items-center gap-2">
-          <span className="bg-rose-500/20 text-rose-400 p-2 rounded-xl border border-rose-500/20">⚠️</span>
+          <span className="bg-rose-500/20 p-2 rounded-xl border border-rose-500/20"><AlertTriangle className="w-6 h-6 text-rose-400" /></span>
           Zona Bahaya: Hapus Database
         </h3>
 
@@ -202,7 +203,7 @@ export default function ResetPage() {
                 Memproses...
               </span>
             ) : (
-              '🗑️ HAPUS SEMUA DATA'
+              <span className="flex items-center"><Trash2 className="w-4 h-4 mr-2" /> HAPUS SEMUA DATA</span>
             )}
           </button>
 

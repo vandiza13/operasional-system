@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { createTechnician } from '@/app/actions/admin';
+import { Wrench, CheckCircle2, AlertTriangle, Plus } from 'lucide-react';
 
 export default function AddTechnicianForm() {
   const formRef = useRef<HTMLFormElement>(null);
@@ -24,13 +25,13 @@ export default function AddTechnicianForm() {
       <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 to-indigo-600"></div>
       
       <h2 className="text-xl font-extrabold text-white mb-1 flex items-center">
-        <span className="bg-purple-500/20 text-purple-400 p-2 rounded-xl mr-3 shadow-sm border border-purple-500/20">👨‍🔧</span> Tambah Teknisi Baru
+        <span className="bg-purple-500/20 p-2 rounded-xl mr-3 shadow-sm border border-purple-500/20"><Wrench className="w-5 h-5 text-purple-400" /></span> Tambah Teknisi Baru
       </h2>
       <p className="text-sm text-slate-400 mb-6 font-medium">Lengkapi identitas resmi tim lapangan.</p>
 
       {message && (
         <div className={`p-4 mb-6 rounded-2xl text-sm font-bold flex items-center gap-2 ${isSuccess ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-          <span>{isSuccess ? '✅' : '⚠️'}</span> {message}
+          <span>{isSuccess ? <CheckCircle2 className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}</span> {message}
         </div>
       )}
 
@@ -69,7 +70,7 @@ export default function AddTechnicianForm() {
 
         <div className="pt-2">
           <button type="submit" disabled={loading} className={`w-full md:w-auto px-8 py-3.5 text-white text-sm font-bold rounded-xl transition-all shadow-lg flex justify-center items-center gap-2 ${loading ? 'bg-slate-700 text-slate-400 cursor-not-allowed shadow-none' : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 shadow-purple-900/50'}`}>
-            {loading ? 'Menyimpan...' : '➕ Daftarkan Teknisi'}
+            {loading ? 'Menyimpan...' : <><Plus className="w-4 h-4" /> Daftarkan Teknisi</>}
           </button>
         </div>
       </form>

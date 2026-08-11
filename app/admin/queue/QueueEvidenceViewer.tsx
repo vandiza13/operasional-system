@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Camera, X, Receipt } from 'lucide-react';
 
 export default function QueueEvidenceViewer({ attachments }: { attachments: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,7 +17,7 @@ export default function QueueEvidenceViewer({ attachments }: { attachments: any[
         onClick={() => setIsOpen(true)}
         className="px-2 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-wider rounded border border-indigo-500/20 transition-colors flex items-center gap-1"
       >
-        <span>📸</span> Cek Bukti
+        <Camera className="w-3 h-3" /> Cek Bukti
       </button>
 
       {/* MODAL LIST BUKTI (Thumbnails Menu) */}
@@ -25,7 +26,7 @@ export default function QueueEvidenceViewer({ attachments }: { attachments: any[
           <div className="bg-slate-900 border border-slate-700/50 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/20">
               <h3 className="text-sm font-black text-white">Daftar Foto Bukti</h3>
-              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors">✖</button>
+              <button onClick={() => setIsOpen(false)} className="text-slate-400 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-5 flex flex-col gap-2.5">
               {attachments.map((att) => (
@@ -34,7 +35,7 @@ export default function QueueEvidenceViewer({ attachments }: { attachments: any[
                   onClick={() => setSelectedImg(att.fileUrl)}
                   className="bg-slate-800/50 hover:bg-slate-700 text-slate-300 px-4 py-3 rounded-xl text-xs font-bold border border-slate-700 transition-all text-left flex items-center gap-2"
                 >
-                  <span className="text-lg">{att.type === 'RECEIPT' ? '🧾' : '📸'}</span>
+                  {att.type === 'RECEIPT' ? <Receipt className="w-4 h-4 text-indigo-400" /> : <Camera className="w-4 h-4 text-emerald-400" />}
                   {att.type === 'RECEIPT' ? 'Foto Bon / Struk' : att.type.replace('_', ' ')}
                 </button>
               ))}

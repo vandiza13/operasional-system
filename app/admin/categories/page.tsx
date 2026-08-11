@@ -3,6 +3,7 @@ import { createCategory, updateCategory, toggleCategoryStatus, deleteCategory } 
 import { revalidatePath } from 'next/cache';
 import CategoriesTable from '@/app/components/CategoriesTable';
 import CreateCategoryForm from '@/app/components/CreateCategoryForm';
+import { Folder } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,8 +54,8 @@ export default async function CategoriesPage() {
       {/* HEADER PAGE */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <span className="text-3xl">📁</span> Manajemen Kategori
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Folder className="w-8 h-8 text-indigo-400" /> Manajemen Kategori
           </h2>
           <p className="text-sm text-slate-400 font-medium mt-1">
             Kelola kategori pengeluaran untuk sistem reimbursement.

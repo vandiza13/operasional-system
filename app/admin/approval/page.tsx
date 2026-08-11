@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import ApprovalTable from '@/app/components/ApprovalTable';
 import Pagination from '@/app/components/Pagination';
 import { Suspense } from 'react';
+import { Clock } from 'lucide-react';
 
 // WAJIB: Agar Next.js selalu menarik data terbaru
 export const dynamic = 'force-dynamic';
@@ -59,8 +60,8 @@ export default async function ApprovalPage({
       {/* HEADER PAGE */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <span className="text-3xl">⏳</span> Verifikasi Laporan
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Clock className="w-8 h-8 text-amber-400" /> Verifikasi Laporan
           </h2>
           <p className="text-sm text-slate-400 font-medium mt-1">
             Cek foto struk dan sesuaikan nominal sebelum menyetujui.

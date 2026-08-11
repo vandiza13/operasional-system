@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { topUpLedger } from '@/app/actions/admin';
+import { Plus, Landmark } from 'lucide-react';
 
 export default function TopUpModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -29,14 +30,14 @@ export default function TopUpModal() {
         onClick={() => setIsOpen(true)}
         className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-indigo-900/50 transition-all active:scale-95 flex items-center gap-2"
       >
-        <span>➕</span> Catat Dana Masuk
+        <Plus className="w-4 h-4" /> Catat Dana Masuk
       </button>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
             <h3 className="text-xl font-black text-white mb-2 flex items-center gap-2">
-              <span className="text-2xl">🏦</span> Top-Up Saldo Kas
+              <Landmark className="w-6 h-6 text-indigo-400" /> Top-Up Saldo Kas
             </h3>
             <p className="text-sm text-slate-400 mb-6">Masukkan nominal dana yang diterima dari Pusat untuk operasional.</p>
             
@@ -44,7 +45,10 @@ export default function TopUpModal() {
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wide">Nominal (Rp)</label>
                 <input 
-                  type="number" 
+                  type="text" 
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  onInput={(e) => { e.currentTarget.value = e.currentTarget.value.replace(/[^0-9]/g, ''); }}
                   name="amount" 
                   required 
                   min="1"

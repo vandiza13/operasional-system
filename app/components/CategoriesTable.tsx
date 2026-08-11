@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { Search, Inbox, Edit2, Trash2 } from 'lucide-react';
 
 interface Category {
   id: string;
@@ -103,7 +104,7 @@ export default function CategoriesTable({
     <div className="space-y-4">
       {/* SEARCH BAR */}
       <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"><Search className="w-5 h-5" /></span>
         <input
           type="text"
           value={searchQuery}
@@ -139,7 +140,7 @@ export default function CategoriesTable({
               {filteredCategories.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="p-16 text-center">
-                    <div className="text-5xl mb-4 grayscale opacity-20">📭</div>
+                    <Inbox className="w-12 h-12 mx-auto text-slate-500 opacity-50 mb-4" />
                     <p className="text-slate-400 font-bold text-lg">Belum ada kategori</p>
                     <p className="text-slate-500 text-sm mt-1">Silakan tambahkan kategori pertama di form sebelah kiri.</p>
                   </td>
@@ -201,9 +202,9 @@ export default function CategoriesTable({
                             <button
                               onClick={() => startEdit(cat)}
                               disabled={loading !== null}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50"
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all disabled:opacity-50 flex items-center"
                             >
-                              ✏️ Edit
+                              <Edit2 className="w-3 h-3 mr-1" /> Edit
                             </button>
 
                             <button
@@ -220,9 +221,9 @@ export default function CategoriesTable({
                             <button
                               onClick={() => handleDelete(cat.id, cat.name)}
                               disabled={loading === `delete-${cat.id}`}
-                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all disabled:opacity-50"
+                              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 transition-all disabled:opacity-50 flex items-center"
                             >
-                              {loading === `delete-${cat.id}` ? '...' : '🗑️ Hapus'}
+                              {loading === `delete-${cat.id}` ? '...' : <><Trash2 className="w-3 h-3 mr-1" /> Hapus</>}
                             </button>
                           </>
                         )}

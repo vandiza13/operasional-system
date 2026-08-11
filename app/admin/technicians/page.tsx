@@ -3,6 +3,7 @@ import AddTechnicianForm from '@/app/components/AddTechnicianForm';
 import TechniciansTable from '@/app/components/TechniciansTable';
 import { editTechnician, resetTechnicianPassword } from '@/app/actions/admin';
 import { revalidatePath } from 'next/cache';
+import { Users, ClipboardList, Inbox } from 'lucide-react';
 
 // WAJIB: Agar Next.js selalu menarik data terbaru (tidak di-cache)
 export const dynamic = 'force-dynamic';
@@ -34,8 +35,8 @@ export default async function TechniciansPage() {
       {/* HEADER PAGE (DARK MODE) */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
-          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <span className="text-3xl">👥</span> Manajemen Teknisi
+          <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+            <Users className="w-8 h-8 text-purple-400" /> Manajemen Teknisi
           </h2>
           <p className="text-sm text-slate-400 font-medium mt-1">
             Daftarkan teknisi baru dan pantau daftar staf lapangan yang aktif.
@@ -58,13 +59,13 @@ export default async function TechniciansPage() {
         {/* KOLOM KANAN: DAFTAR TEKNISI (DARK MODE) */}
         <div className="lg:col-span-7 2xl:col-span-8 space-y-4">
           <h3 className="text-lg font-extrabold text-white flex items-center gap-2 mb-4">
-            <span className="bg-slate-800/50 p-1.5 rounded-lg text-sm border border-slate-700/50">📋</span> Daftar Karyawan Lapangan
+            <span className="bg-slate-800/50 p-1.5 rounded-lg border border-slate-700/50"><ClipboardList className="w-5 h-5 text-slate-400" /></span> Daftar Karyawan Lapangan
           </h3>
 
           {technicians.length === 0 ? (
-            <div className="bg-slate-800/30 border-2 border-dashed border-slate-700/50 rounded-3xl p-12 text-center backdrop-blur-sm">
-              <span className="text-5xl grayscale opacity-20">📭</span>
-              <p className="text-slate-400 font-bold mt-4">Belum ada teknisi.</p>
+            <div className="bg-slate-800/30 border-2 border-dashed border-slate-700/50 rounded-3xl p-12 text-center backdrop-blur-sm flex flex-col items-center">
+              <Inbox className="w-12 h-12 text-slate-500 opacity-50 mb-2" />
+              <p className="text-slate-400 font-bold mt-2">Belum ada teknisi.</p>
               <p className="text-slate-500 text-sm mt-1">Silakan daftarkan teknisi pertama Anda di form sebelah kiri.</p>
             </div>
           ) : (
